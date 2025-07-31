@@ -161,7 +161,7 @@ export const checkSession = (req, res, next) => {
 // @desc Logout user
 // @route DELETE /api/logout
 export const logoutUser = async (req, res, next) => {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
         const error = new Error("Refresh token is required");

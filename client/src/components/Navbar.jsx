@@ -1,8 +1,24 @@
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/Logo.png';
+import logout from '../assets/logout.png';
+import axios from 'axios';
 
 const Navbar = ({ isLoggedIn = false }) => {
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await axios.delete('http://localhost:8080/api/auth/logout', {
+        withCredentials: true,
+      });
+      
+      localStorage.removeItem('accessToken');
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error.response ? error.response.data.message : error.message);
+      alert('Logout failed.' + (error.response ? ` ${error.response.data.message}` : ' Please try again.'));
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 w-full shadow-lg z-20 overflow-hidden bg-white/10 backdrop-blur-md">
@@ -32,6 +48,19 @@ const Navbar = ({ isLoggedIn = false }) => {
                         className="w-full h-full object-cover"
                     />
                 </div>
+
+                {/* Logout button */}
+                <div className="relative group">
+                  <button
+                    className="hover:cursor-pointer transition ease-linear duration-300"
+                    onClick={handleLogout}
+                  >
+                    <img src={logout} alt="Logout" className="inline-block" />
+                  </button>
+                  <span className="absolute top-5 left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    Logout
+                  </span>
+                </div>
               </>
             ) : (
               // Not logged in user navigation
@@ -41,7 +70,7 @@ const Navbar = ({ isLoggedIn = false }) => {
                 <a href="/services" className="text-gray-700 hover:text-gray-900 font-medium">Services</a>
                 <a href="/contact" className="text-gray-700 hover:text-gray-900 font-medium">Contact</a>
                 
-                {/* Get Started button */}
+                {/* Login button */}
                 <button
                     className="bg-[var(--color-primary)] text-white px-6 py-2 rounded-full font-medium hover:bg-[var(--color-secondary)] hover:cursor-pointer transition-ease-linear duration-300"
                     onClick={() => navigate('/login')}
