@@ -1,18 +1,25 @@
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../api/axios';
 import logo from '../assets/Logo.png';
 import logout from '../assets/logout.png';
-import axios from 'axios';
 
-const Navbar = ({ isLoggedIn = false }) => {
+const Navbar = () => {
   const navigate = useNavigate();
+
+  const { isAuthenticated, setIsAuthenticated} = useContext(AuthContext);
 
   const handleLogout = async () => {
     try {
-      await axios.delete('http://localhost:8080/api/auth/logout', {
-        withCredentials: true,
+      await axiosInstance.delete('/auth/logout', {
+        headers: {
+          Authorization: '', // Clear the Authorization header
+        },
       });
-      
+
       localStorage.removeItem('accessToken');
+      setIsAuthenticated(false);
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error.response ? error.response.data.message : error.message);
@@ -32,7 +39,7 @@ const Navbar = ({ isLoggedIn = false }) => {
 
           {/* Right side - Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               // Logged in user navigation
               <>
                 <a href="/" className="text-gray-700 hover:text-gray-900 font-medium">Home</a>

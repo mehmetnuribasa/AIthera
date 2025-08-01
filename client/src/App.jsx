@@ -5,7 +5,9 @@ import {
   Route,
 } from 'react-router-dom';
 import axiosInstance from './api/axios'; // Import the configured axios instance
+import { AuthProvider } from './context/AuthContext';
 import Home from './pages/Home';
+import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Navbar from './components/Navbar';
@@ -30,15 +32,18 @@ function App() {
 
 
   return (
+    <AuthProvider >
       <Router>
-          <Navbar isLoggedIn={isAuthenticated} />
+        <Navbar />
+        
         <Routes>
-          <Route path="/" element={<h1>Welcome to the AIthera App {isAuthenticated ? 'User is authenticated' : 'User is not authenticated'}</h1>} />
-          <Route path="/home" element={<Home />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
         </Routes>
       </Router>
+    </AuthProvider>
   )
 }
 

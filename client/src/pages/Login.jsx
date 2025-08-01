@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import{ useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const Login = () => {
   const navigate = useNavigate();
+
+  const { setIsAuthenticated } = useContext(AuthContext);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,6 +25,7 @@ const Login = () => {
 
       console.log(response.data);
       alert('Login successful!');
+      setIsAuthenticated(true); // Update authentication state
       navigate('/home');
     } catch (error) {
       console.error('Login failed:', error.response ? error.response.data.message : error.message);
