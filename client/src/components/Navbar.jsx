@@ -19,8 +19,8 @@ const Navbar = () => {
       });
 
       localStorage.removeItem('accessToken');
+      navigate('/home');
       setIsAuthenticated(false);
-      navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error.response ? error.response.data.message : error.message);
       alert('Logout failed.' + (error.response ? ` ${error.response.data.message}` : ' Please try again.'));
@@ -28,11 +28,14 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 w-full shadow-lg z-20 overflow-hidden bg-white/10 backdrop-blur-md">
+    <nav className="fixed top-0 left-0 w-full shadow-sm z-20 overflow-hidden bg-white/10 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side - Brand */}
-          <div className="flex items-center">
+          <div 
+            className="flex items-center hover:cursor-pointer"
+            onClick={() => navigate('/')}
+          >
             <img src={logo} alt="Logo" className="h-20 w-20" />
             <span className="text-xl font-bold text-slate-600 ml-[-18px]">AIthera</span>
           </div>
@@ -48,7 +51,10 @@ const Navbar = () => {
                 <a href="/community" className="text-gray-700 hover:text-gray-900 font-medium">Community</a>
                 
                 {/* Profile picture */}
-                <div className="w-8 h-8 rounded-full overflow-hidden">
+                <div
+                  className="w-8 h-8 rounded-full overflow-hidden hover:cursor-pointer"
+                  onClick={() => navigate('/profile')}
+                >
                     <img
                         src="https://picsum.photos/200"
                         alt="Profile"

@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import{ useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -24,9 +23,8 @@ const Login = () => {
       localStorage.setItem('accessToken', response.data.accessToken);
 
       console.log(response.data);
-      alert('Login successful!');
       setIsAuthenticated(true); // Update authentication state
-      navigate('/home');
+      
     } catch (error) {
       console.error('Login failed:', error.response ? error.response.data.message : error.message);
       alert('Login failed.' + (error.response ? ` ${error.response.data.message}` : ' Please try again.'));

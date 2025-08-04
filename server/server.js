@@ -9,6 +9,7 @@ import notFound from './middleware/notFound.js';
 import pool from './config/pool.js';
 import users from './routes/users.js';
 import auth from './routes/auth.js';
+import profiles from './routes/profile.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -70,6 +71,9 @@ app.use(logger);
 app.use('/api/users', users);
 
 app.use('/api/auth', auth);
+
+app.use("/api/profile", profiles);
+
 
 // Error handling middleware
 app.use(notFound);

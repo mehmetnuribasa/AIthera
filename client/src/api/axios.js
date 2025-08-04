@@ -43,11 +43,6 @@ axiosInstance.interceptors.response.use(
             } catch (refreshError) {
                 console.error('Refresh token failed:', refreshError);
                 localStorage.removeItem('accessToken');
-                
-                if (window.location.pathname !== '/login') {
-                    // Redirect to login page if not already there
-                    window.location.href = '/login';
-                }
             }
         }
         return Promise.reject(error);

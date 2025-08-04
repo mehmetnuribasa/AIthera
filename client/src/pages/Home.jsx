@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import heroImg from '../assets/dashboardPhoto.avif';
 import breathingImg from '../assets/breathingExercises.png';
 import groundingImg from '../assets/groundingExercise.jpg';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useContext(AuthContext);
 
   const scrollToContent = () => {
     const contentSection = document.getElementById('content');
@@ -12,7 +15,12 @@ const Home = () => {
   };
 
   const handleGetStarted = () => {
-    navigate('/login');
+    if (isAuthenticated) {
+      navigate('/profile');
+    } else {
+      // If user is not authenticated, go to login
+      navigate('/login');
+    }
   };
 
   return (
@@ -35,7 +43,7 @@ const Home = () => {
               onClick={handleGetStarted}
               className="text-white px-8 py-3 rounded-xl text-lg font-semibold shadow-2xl hover:bg-[var(--color-secondary)] hover:cursor-pointer transition ease-linear duration-300"
             >
-                Get Started
+                {isAuthenticated ? 'Go to Profile' : 'Get Started'}
             </button>
           
             <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2">
