@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [hasProfile, setHasProfile] = useState(false);
+    const [gad7Status, setGad7Status] = useState(false);
 
     const checkUserProfile = async (userId) => {
         try {
@@ -20,6 +21,18 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const checkGad7Status = async (userId) => {
+        try {
+            const response = await axiosInstance.get(`/gad7/check/${userId}`);
+            setGad7Status(response.data.hasGAD7);
+            return response.data.hasGAD7;
+        } catch (error) {
+            console.error('GAD-7 status check failed:', error);
+            setGad7Status(false);
+            return false;
+        }
+    }
+
     const checkSession = async () => {
         try {
             const response = await axiosInstance.get('/auth/session');
@@ -28,6 +41,8 @@ export const AuthProvider = ({ children }) => {
             if (response.data.isAuthenticated) {
                 // Check if user has profile
                 await checkUserProfile(response.data.userId);
+                // Check GAD-7 status
+                await checkGad7Status(response.data.userId);
             }
         } catch (error) {
             console.error('Session check failed:', error);
@@ -46,6 +61,7 @@ export const AuthProvider = ({ children }) => {
             await checkSession();
         } else {
             setHasProfile(false);
+            setGad7Status(false);
             setIsLoading(false);
         }
     };
@@ -58,14 +74,19 @@ export const AuthProvider = ({ children }) => {
         await checkUserProfile(userId);
     };
 
+    const updateGad7Status = async (userId) => {
+        await checkGad7Status(userId);
+    }
+
     return (
         <AuthContext.Provider value={{ 
             isAuthenticated, 
             setIsAuthenticated: handleSetAuthenticated, 
             isLoading,
-            hasProfile, 
-            setHasProfile,
-            updateProfileStatus
+            hasProfile,
+            gad7Status,
+            updateProfileStatus,
+            updateGad7Status
         }}>
             {children}
         </AuthContext.Provider>

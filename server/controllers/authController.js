@@ -158,38 +158,6 @@ export const checkSession = (req, res, next) => {
     }
 };
 
-// @desc Get current user
-// @route GET /api/current-user
-export const getCurrentUser = async (req, res, next) => {
-    const token = req.headers.authorization?.split(" ")[1];
-
-    if (!token) {
-        const error = new Error("No token provided");
-        error.status = 401; // Unauthorized
-        return next(error);
-    }
-
-    try {
-        // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        res.status(200).json({ userId: decoded.id , isAuthenticated: true });
-    } catch (error) {
-        if (error.name === "TokenExpiredError") {
-            // Access token expired error
-            const expiredError = new Error("Access token expired");
-            expiredError.status = 401; // Unauthorized
-            return next(expiredError);
-        } else if (error.name === "JsonWebTokenError") {
-            // Invalid token error
-            const invalidError = new Error("Invalid token");
-            invalidError.status = 401; // Unauthorized
-            return next(invalidError);
-        } else {
-            return next(error);
-        }
-    }
-};
-
 // @desc Logout user
 // @route DELETE /api/logout
 export const logoutUser = async (req, res, next) => {

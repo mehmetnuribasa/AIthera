@@ -8,13 +8,13 @@ const Profile = () => {
     email: 'mehmet@example.com',
     joinDate: 'January 2024',
     totalSessions: 12,
-    anxietyLevel: 'Moderate',
-    gad7Score: 15,
+    anxietyLevel: 'mild',
+    gad7Score: 5,
     recommendedTherapy: 'Cognitive Behavioral Therapy (CBT)',
     therapyProgress: 65
   });
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('assessment');
 
   // Mock therapy sessions data
   const [therapySessions] = useState([
@@ -27,10 +27,21 @@ const Profile = () => {
 
   const getAnxietyLevelColor = (level) => {
     switch (level.toLowerCase()) {
+      case 'minimal': return 'bg-blue-500';
       case 'mild': return 'bg-green-500';
       case 'moderate': return 'bg-yellow-500';
       case 'severe': return 'bg-red-500';
       default: return 'bg-gray-500';
+    }
+  };
+
+  const getAnxietyLevelWidth = (level) => {
+    switch (level.toLowerCase()) {
+      case 'minimal': return '20%';
+      case 'mild': return '40%';
+      case 'moderate': return '60%';
+      case 'severe': return '80%';
+      default: return '0%';
     }
   };
 
@@ -83,9 +94,19 @@ const Profile = () => {
         </div>
 
         {/* Tabs */}
-        <div className="rounded-2xl shadow-md mb-8">
+        <div className="mb-8">
           <div className="border-b border-slate-200">
             <nav className="flex space-x-5 px-8">
+              <button
+                onClick={() => setActiveTab('assessment')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm hover:cursor-pointer ${
+                  activeTab === 'assessment'
+                    ? 'border-[var(--color-secondary)] text-[var(--color-primary)]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                Assessment
+              </button>
               <button
                 onClick={() => setActiveTab('overview')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm hover:cursor-pointer ${
@@ -106,21 +127,65 @@ const Profile = () => {
               >
                 Therapy Sessions
               </button>
-              <button
-                onClick={() => setActiveTab('assessment')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm hover:cursor-pointer ${
-                  activeTab === 'assessment'
-                    ? 'border-[var(--color-secondary)] text-[var(--color-primary)]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                Assessment
-              </button>
             </nav>
           </div>
 
+
           {/* Tab Content */}
           <div className="p-8">
+
+            {activeTab === 'assessment' && (
+              <div>
+                <h3 className="text-2xl font-bold text-slate-500 mb-7">Your Anxiety Level</h3>
+                
+                {/* GAD-7 Score Section */}
+                <div className="bg-slate-100 rounded-xl p-4 mb-8">
+                  <div className="text-sm text-slate-600 mb-1">GAD-7 Score</div>
+                  <div className="text-3xl font-bold text-slate-600">{userData.gad7Score}</div>
+                </div>
+                
+                {/* Anxiety Level Indicator */}
+                <div className="mb-12">
+                  <div className="mb-3 text-lg text-slate-500 font-semibold">{userData.anxietyLevel}</div>
+                  <div className="w-full bg-slate-200 rounded-full h-3 mb-2">
+                    <div 
+                      className={`h-3 rounded-full ${getAnxietyLevelColor(userData.anxietyLevel)}`}
+                      style={{ width: getAnxietyLevelWidth(userData.anxietyLevel) }}
+                    ></div>
+                  </div>
+                </div>
+                
+                {/* Recommended Therapy Section */}
+                <div className="mb-8">
+                  <h4 className="font-bold text-slate-600 text-md mb-5">Recommended Therapy</h4>
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1">
+                      <div className="font-bold text-slate-500 mb-2">{userData.recommendedTherapy}</div>
+                      <p className="text-slate-500 text-sm leading-relaxed">
+                        CBT is a type of psychotherapy that helps people identify and change negative thinking patterns and behaviors. It's effective for anxiety, depression, and other mental health issues.
+                      </p>
+                    </div>
+                    <div className="w-24 h-24 bg-orange-100 rounded-xl flex items-center justify-center">
+                      <svg className="w-12 h-12 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Summary and Call to Action */}
+                <div className="text-slate-500 text-sm mb-8">
+                  Based on your GAD-7 score, we recommend a Cognitive Behavioral Therapy (CBT) plan. You'll go through 5 CBT sessions tailored to your needs.
+                </div>
+                
+                <div className="text-right">
+                  <button className="bg-[var(--color-primary)] text-white px-4 py-4 rounded-xl font-semibold hover:bg-[var(--color-secondary)] hover:cursor-pointer transition ease-linear duration-300">
+                    Continue Therapy
+                  </button>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-slate-500 mb-4">Your Progress Overview</h2>
@@ -174,66 +239,6 @@ const Profile = () => {
                       </span>
                     </div>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'assessment' && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-slate-500 mb-4">Your Anxiety Assessment</h2>
-                
-                {/* Anxiety Level Card - Based on the provided image */}
-                <div className="bg-white rounded-2xl shadow-lg p-8 max-w-2xl mx-auto">
-                  <h3 className="text-2xl font-bold text-slate-600 mb-6">Your Anxiety Level</h3>
-                  
-                  {/* GAD-7 Score Section */}
-                  <div className="bg-slate-100 rounded-xl p-4 mb-6">
-                    <div className="text-sm text-slate-600 mb-1">GAD-7 Score</div>
-                    <div className="text-3xl font-bold text-slate-600">{userData.gad7Score}</div>
-                  </div>
-                  
-                  {/* Anxiety Level Indicator */}
-                  <div className="mb-6">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-slate-600">Anxiety Level</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-3 mb-2">
-                      <div 
-                        className={`h-3 rounded-full ${getAnxietyLevelColor(userData.anxietyLevel)}`}
-                        style={{ width: '60%' }}
-                      ></div>
-                    </div>
-                    <div className="text-sm text-slate-500">{userData.anxietyLevel}</div>
-                  </div>
-                  
-                  {/* Recommended Therapy Section */}
-                  <div className="mb-6">
-                    <h4 className="font-bold text-slate-600 mb-3">Recommended Therapy</h4>
-                    <div className="flex items-start gap-4">
-                      <div className="flex-1">
-                        <div className="font-bold text-slate-600 mb-2">{userData.recommendedTherapy}</div>
-                        <p className="text-slate-500 text-sm leading-relaxed">
-                          CBT is a type of psychotherapy that helps people identify and change negative thinking patterns and behaviors. It's effective for anxiety, depression, and other mental health issues.
-                        </p>
-                      </div>
-                      <div className="w-24 h-24 bg-orange-100 rounded-xl flex items-center justify-center">
-                        <svg className="w-12 h-12 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Summary and Call to Action */}
-                  <div className="text-slate-500 text-sm mb-6">
-                    Based on your GAD-7 score, we recommend a Cognitive Behavioral Therapy (CBT) plan. You'll go through 5 CBT sessions tailored to your needs.
-                  </div>
-                  
-                  <div className="text-right">
-                    <button className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[var(--color-secondary)] transition ease-linear duration-300">
-                      Start Therapy
-                    </button>
-                  </div>
                 </div>
               </div>
             )}

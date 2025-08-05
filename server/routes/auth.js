@@ -4,8 +4,7 @@ import {
     refreshAccessToken,
     checkSession,
     logoutUser,
-    signupUser,
-    getCurrentUser
+    signupUser
 } from '../controllers/authController.js';
 
 const router = express.Router();
@@ -21,9 +20,6 @@ router.post('/refresh-token', refreshAccessToken);
 
 // Check session
 router.get('/session', checkSession);
-
-// Get current user
-router.get('/current-user', getCurrentUser);
 
 // Logout user
 router.delete('/logout', logoutUser);

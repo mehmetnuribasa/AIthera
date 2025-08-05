@@ -21,7 +21,7 @@ const Onboarding = () => {
   useEffect(() => {
     const fetchUserId = async () => {
       try{
-        const response = await axiosInstance.get('/auth/current-user');
+        const response = await axiosInstance.get('/auth/session');
 
         setFormData(prev => ({
           ...prev,
@@ -59,7 +59,7 @@ const Onboarding = () => {
         await updateProfileStatus(formData.user_id);
       }
       
-      navigate('/profile');
+      navigate('/gad7');
     } catch (error) {
       console.error('Profile completion failed:', error.response ? error.response.data.message : error.message);
       alert('Profile completion failed.' + (error.response ? ` ${error.response.data.message}` : ' Please try again.'));

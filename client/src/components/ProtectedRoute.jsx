@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
 const ProtectedRoute = ({ children, allowPublic = false }) => {
-    const { isAuthenticated, isLoading, hasProfile } = useContext(AuthContext);
+    const { isAuthenticated, isLoading, hasProfile, gad7Status } = useContext(AuthContext);
     const location = useLocation();
 
     // Loading
@@ -17,9 +17,13 @@ const ProtectedRoute = ({ children, allowPublic = false }) => {
         if (isAuthenticated && !hasProfile && location.pathname !== '/onboarding') {
             return <Navigate to="/onboarding" replace />;
         }
-        
+
+        if( isAuthenticated && !gad7Status && hasProfile && location.pathname !== '/gad7') {
+            return <Navigate to="/gad7" replace />;
+        }
+
         // If user has profile and on onboarding page, redirect to profile
-        if (isAuthenticated && hasProfile && location.pathname === '/onboarding') {
+        if (isAuthenticated && hasProfile && gad7Status && (location.pathname === '/onboarding' || location.pathname === '/gad7')) {
             return <Navigate to="/profile" replace />;
         }
         
@@ -38,8 +42,12 @@ const ProtectedRoute = ({ children, allowPublic = false }) => {
         return <Navigate to="/onboarding" replace />;
     }
 
+    if(hasProfile && !gad7Status && location.pathname !== '/gad7') {
+        return <Navigate to="/gad7" replace />;
+    }
+
     // If user has profile and on onboarding page, redirect to profile
-    if (hasProfile && location.pathname === '/onboarding') {
+    if (hasProfile && gad7Status && (location.pathname === '/onboarding' || location.pathname === '/gad7')) {
         return <Navigate to="/profile" replace />;
     }
 

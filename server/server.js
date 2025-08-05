@@ -10,6 +10,7 @@ import pool from './config/pool.js';
 import users from './routes/users.js';
 import auth from './routes/auth.js';
 import profiles from './routes/profile.js';
+import gad7 from './routes/gad7.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -73,6 +74,8 @@ app.use('/api/users', users);
 app.use('/api/auth', auth);
 
 app.use("/api/profile", profiles);
+
+app.use('/api/gad7', gad7);
 
 
 // Error handling middleware

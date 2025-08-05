@@ -142,6 +142,10 @@ export const updateProfile = async (req, res, next) => {
 export const checkUserProfile = async (req, res, next) => {
     const userId = parseInt(req.params.userId);
 
+    if (!userId) {
+        return res.status(400).json({ message: "User ID is required." });
+    }
+    
     try {
         const [result] = await pool.query("SELECT * FROM user_profiles WHERE user_id = ?", [userId]);
 
