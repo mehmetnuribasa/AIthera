@@ -4,20 +4,20 @@ import {
     getProfile,
     updateProfile,
     createProfile,
-    checkUserProfile,
-    getProfileByUserId
+    checkUserProfile
 } from '../controllers/profileController.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Apply auth middleware to all profile routes
+router.use(authenticateToken);
 
 // Get user profiles
 router.get('/', getProfiles);
 
-// Check if user has profile
-router.get('/check/:userId', checkUserProfile);
-
-// Get user profile by user_id
-router.get('/user/:userId', getProfileByUserId);
+// Check if user has profile (no userId parameter needed - uses authenticated user)
+router.get('/check', checkUserProfile);
 
 // Get user profile
 router.get('/:id', getProfile);

@@ -3,13 +3,15 @@ import pool from '../config/pool.js';
 // @desc Create a new GAD-7 assessment
 // @route POST /api/gad7
 export const createGAD7 = async (req, res, next) => {
-    const { user_id, question1, question2, question3, question4, question5, question6, question7 } = req.body;
+    const { question1, question2, question3, question4, question5, question6, question7 } = req.body;
 
-    if(!user_id || !question1 || !question2 || !question3 || !question4 || !question5 || !question6 || !question7) {
-        const error = new Error('Please include all required fields: user_id, question1, question2, question3, question4, question5, question6, question7');
+    if(!question1 || !question2 || !question3 || !question4 || !question5 || !question6 || !question7) {
+        const error = new Error('Please include all required fields: question1, question2, question3, question4, question5, question6, question7');
         error.status = 400;
         return next(error);
     }
+
+    const user_id = req.user.id; // Get user ID from authenticated request
 
     try {
         // Check if GAD-7 assessment already exists for this user
@@ -47,11 +49,7 @@ export const createGAD7 = async (req, res, next) => {
 // @desc Check GAD-7 assessment status for a user
 // @route GET /api/gad7/check/:userId
 export const checkGAD7Status = async (req, res, next) => {
-    const userId = parseInt(req.params.userId);
-
-    if (!userId) {
-        return res.status(400).json({ message: "User ID is required." });
-    }
+    const userId = req.user.id; // Get user ID from authenticated request
 
     try {
         const [result] = await pool.query(

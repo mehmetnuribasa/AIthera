@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
@@ -8,7 +8,6 @@ const Gad7 = () => {
   const { updateGad7Status } = useContext(AuthContext);
 
   const [answers, setAnswers] = useState({
-    user_id: '',
     question1: '',
     question2: '',
     question3: '',
@@ -56,25 +55,6 @@ const Gad7 = () => {
     { value: '3', label: 'Nearly every day', score: 3 }
   ];
 
-  useEffect(() => {
-    const fetchUserId = async () => {
-      try{
-        const response = await axiosInstance.get('/auth/session');
-
-        setAnswers(prev => ({
-          ...prev,
-          user_id: response.data.userId// Set user_id from the response
-        }));
-
-        console.log('User ID fetched successfully:', response.data.userId);
-      } catch (error) {
-        console.error('Error fetching user ID:', error);
-      }
-    };
-
-    fetchUserId();
-  }, []);
-
   const handleAnswerChange = (questionId, value) => {
     setAnswers(prev => ({
       ...prev,
@@ -91,9 +71,7 @@ const Gad7 = () => {
       console.log('GAD-7 Test Result:', response.data);
 
       // Update GAD-7 status in AuthContext
-      if (answers.user_id) {
-        await updateGad7Status(answers.user_id);
-      }
+      await updateGad7Status();
 
       navigate('/profile');
     } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
@@ -8,7 +8,6 @@ const Onboarding = () => {
   const { updateProfileStatus } = useContext(AuthContext);
 
   const [formData, setFormData] = useState({
-    user_id: '',
     age: '',
     gender: '',
     sleepPattern: '',
@@ -17,25 +16,6 @@ const Onboarding = () => {
     usesMedication: '',
     dreamRecallLevel: ''
   });
-
-  useEffect(() => {
-    const fetchUserId = async () => {
-      try{
-        const response = await axiosInstance.get('/auth/session');
-
-        setFormData(prev => ({
-          ...prev,
-          user_id: response.data.userId// Set user_id from the response
-        }));
-
-        console.log('User ID fetched successfully:', response.data.userId);
-      } catch (error) {
-        console.error('Error fetching user ID:', error);
-      }
-    };
-
-    fetchUserId();
-  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -55,10 +35,8 @@ const Onboarding = () => {
       console.log('Profile completed successfully:', response.data);
       
       // Update profile status in AuthContext
-      if (formData.user_id) {
-        await updateProfileStatus(formData.user_id);
-      }
-      
+      await updateProfileStatus();
+
       navigate('/gad7');
     } catch (error) {
       console.error('Profile completion failed:', error.response ? error.response.data.message : error.message);

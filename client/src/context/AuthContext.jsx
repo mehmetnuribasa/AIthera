@@ -9,9 +9,9 @@ export const AuthProvider = ({ children }) => {
     const [hasProfile, setHasProfile] = useState(false);
     const [gad7Status, setGad7Status] = useState(false);
 
-    const checkUserProfile = async (userId) => {
+    const checkUserProfile = async () => {
         try {
-            const response = await axiosInstance.get(`/profile/check/${userId}`);
+            const response = await axiosInstance.get('/profile/check');
             setHasProfile(response.data.hasProfile);
             return response.data.hasProfile;
         } catch (error) {
@@ -21,9 +21,9 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const checkGad7Status = async (userId) => {
+    const checkGad7Status = async () => {
         try {
-            const response = await axiosInstance.get(`/gad7/check/${userId}`);
+            const response = await axiosInstance.get('/gad7/check');
             setGad7Status(response.data.hasGAD7);
             return response.data.hasGAD7;
         } catch (error) {
@@ -33,21 +33,27 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
-    const checkSession = async () => {
-        try {
-            const response = await axiosInstance.get('/auth/session');
-            setIsAuthenticated(response.data.isAuthenticated);
-            
-            if (response.data.isAuthenticated) {
-                // Check if user has profile
-                await checkUserProfile(response.data.userId);
-                // Check GAD-7 status
-                await checkGad7Status(response.data.userId);
-            }
-        } catch (error) {
-            console.error('Session check failed:', error);
+    const checkAuthStatus = async () => {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
             setIsAuthenticated(false);
-            setHasProfile(false);
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            // If we can make these calls successfully, user is authenticated
+            setIsAuthenticated(true);
+            await checkUserProfile();
+            await checkGad7Status();
+        } catch (error) {
+            if (error.response?.status === 401) {
+                // Token is invalid or expired
+                localStorage.removeItem('accessToken');
+                setIsAuthenticated(false);
+                setHasProfile(false);
+                setGad7Status(false);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -57,25 +63,25 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(authenticated);
         
         if (authenticated) {
-            // If user just logged in, check session to get user info and profile status
-            await checkSession();
+            await checkUserProfile();
+            await checkGad7Status();
         } else {
             setHasProfile(false);
             setGad7Status(false);
-            setIsLoading(false);
         }
+        setIsLoading(false);
     };
 
     useEffect(() => {
-        checkSession();
+        checkAuthStatus();
     }, []);
 
-    const updateProfileStatus = async (userId) => {
-        await checkUserProfile(userId);
+    const updateProfileStatus = async () => {
+        await checkUserProfile();
     };
 
-    const updateGad7Status = async (userId) => {
-        await checkGad7Status(userId);
+    const updateGad7Status = async () => {
+        await checkGad7Status();
     }
 
     return (

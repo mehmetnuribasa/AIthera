@@ -34,13 +34,16 @@ export const getProfile = async (req, res, next) => {
 // @desc Create a new user profile
 // @route POST /api/profile
 export const createProfile = async (req, res, next) => {
-    const { user_id, age, gender, sleepPattern, stressLevel, hasDiagnosis, usesMedication, dreamRecallLevel} = req.body;
+    const { age, gender, sleepPattern, stressLevel, hasDiagnosis, usesMedication, dreamRecallLevel} = req.body;
 
-    if(!user_id || !age || !gender || !sleepPattern || !stressLevel || !hasDiagnosis || !usesMedication || !dreamRecallLevel) {
-        const error = new Error('Please include all required fields: user_id, age, gender, sleepPattern, stressLevel, hasDiagnosis, usesMedication, dreamRecallLevel');
+
+    if(!age || !gender || !sleepPattern || !stressLevel || !hasDiagnosis || !usesMedication || !dreamRecallLevel) {
+        const error = new Error('Please include all required fields: age, gender, sleepPattern, stressLevel, hasDiagnosis, usesMedication, dreamRecallLevel');
         error.status = 400;
         return next(error);
     }
+
+    const user_id = req.user.id; // Get user ID from authenticated request
 
     try {
         // Check if profile already exists for this user
@@ -140,12 +143,8 @@ export const updateProfile = async (req, res, next) => {
 // @desc Check if user has profile by user_id
 // @route GET /api/profile/check/:userId
 export const checkUserProfile = async (req, res, next) => {
-    const userId = parseInt(req.params.userId);
+    const userId = req.user.id; // Get user ID from authenticated request
 
-    if (!userId) {
-        return res.status(400).json({ message: "User ID is required." });
-    }
-    
     try {
         const [result] = await pool.query("SELECT * FROM user_profiles WHERE user_id = ?", [userId]);
 
@@ -162,26 +161,6 @@ export const checkUserProfile = async (req, res, next) => {
                 message: "User profile found" 
             });
         }
-    } catch (error) {
-        next(error);
-    }
-};
-
-// @desc Get user profile by user_id
-// @route GET /api/profile/user/:userId
-export const getProfileByUserId = async (req, res, next) => {
-    const userId = parseInt(req.params.userId);
-
-    try {
-        const [result] = await pool.query("SELECT * FROM user_profiles WHERE user_id = ?", [userId]);
-
-        if (result.length === 0) {
-            const error = new Error(`Profile for user ${userId} not found`);
-            error.status = 404;
-            return next(error);
-        }
-
-        res.status(200).json(result[0]);
     } catch (error) {
         next(error);
     }

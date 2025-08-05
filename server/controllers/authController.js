@@ -47,6 +47,13 @@ export const loginUser = async (req, res, next) => {
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         });
 
+        res.cookie("user_id", user[0].id, {
+            httpOnly: true,
+            secure: false, // Set to true if using HTTPS (TEMPORARILY false for testing)
+            sameSite: "lax",
+            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        });
+
         res.status(200).json({ accessToken });
     } catch (error) {
         next(error);
@@ -122,39 +129,6 @@ export const refreshAccessToken = async (req, res, next) => {
         res.status(200).json({ accessToken: newAccessToken });
     } catch (error) {
         next(error);
-    }
-};
-
-
-// @desc Check session
-// @route GET /api/session
-export const checkSession = (req, res, next) => {
-    const token = req.headers.authorization?.split(" ")[1];
-
-    if (!token) {
-        const error = new Error("No token provided");
-        error.status = 401; // Unauthorized
-        return next(error);
-    }
-
-    try {
-        // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        res.status(200).json({ message: "Session active", userId: decoded.id , isAuthenticated: true });
-    } catch (error) {
-        if (error.name === "TokenExpiredError") {
-            // Access token expired error
-            const expiredError = new Error("Access token expired");
-            expiredError.status = 401; // Unauthorized
-            return next(expiredError);
-        } else if (error.name === "JsonWebTokenError") {
-            // Invalid token error
-            const invalidError = new Error("Invalid token");
-            invalidError.status = 401; // Unauthorized
-            return next(invalidError);
-        } else {
-            return next(error);
-        }
     }
 };
 
