@@ -1,6 +1,25 @@
 import pool from "../config/pool.js";
 import bcrypt from "bcrypt";
 
+// @desc Get current user
+// @route GET /api/users/current
+export const getCurrentUser = async (req, res, next) => {
+    const userId = req.user.id; // Get user ID from authenticated request
+
+    try {
+        const [rows] = await pool.query('SELECT id, first_name, last_name, email, register_date FROM users WHERE id = ?', [userId]);
+
+        if (rows.length === 0) {
+            const error = new Error(`User with id ${userId} not found`);
+            error.status = 404;
+            return next(error);
+        }
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        next(error);
+    }
+}
+
 // @desc get all users
 // @route GET /api/users
 export const getUsers = async (req,  res, next) => {

@@ -26,7 +26,7 @@ router.get('/:id', getProfile);
 router.post('/', createProfile);
 
 // Update user profile
-router.put('/:id', updateProfile);
+router.put('/', updateProfile);
 
 export default router;
 

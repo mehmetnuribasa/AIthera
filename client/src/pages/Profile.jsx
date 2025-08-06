@@ -1,20 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axiosInstance from '../api/axios';
 
 const Profile = () => {
-  // Mock user data - in real app this would come from API
-  const [userData] = useState({
-    firstName: 'Mehmet',
-    lastName: 'Basa',
-    email: 'mehmet@example.com',
-    joinDate: 'January 2024',
-    totalSessions: 12,
-    anxietyLevel: 'mild',
-    gad7Score: 5,
-    recommendedTherapy: 'Cognitive Behavioral Therapy (CBT)',
+  const [userData, setUserData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    joinDate: '',
+    severityLevel: '',
+    totalScore: '',
+    totalSessions: '',
+    recommendedTherapy: '',
     therapyProgress: 65
   });
 
   const [activeTab, setActiveTab] = useState('assessment');
+
+  useEffect(() => {
+    
+    // Fetch user profile data
+    const fetchUserProfile = async () => {
+      try {
+        const response = await axiosInstance.get('/users/current');
+        
+        setUserData((prevData) => ({
+          ...prevData,
+          firstName: response.data.first_name,
+          lastName: response.data.last_name,
+          email: response.data.email,
+          joinDate: response.data.register_date
+            ? new Date(response.data.register_date).toLocaleDateString()
+            : ''
+        }));
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error.response ? error.response.data.message : error.message);
+        alert('Failed to fetch user profile.' + (error.response ? ` ${error.response.data.message}` : ' Please try again.'));
+      }
+    }
+    
+    // Fetch user gad7 results
+    const fetchGAD7Results = async () => {
+      try {
+        const response = await axiosInstance.get('/gad7/results');
+
+        setUserData((prevData) => ({
+          ...prevData,
+          totalScore: response.data[0].totalScore,
+          severityLevel: response.data[0].severityLevel,
+          totalSessions: response.data[0].total_sessions,          
+          recommendedTherapy: response.data[0].recommended_therapy
+        }));
+      } catch (error) {
+        console.error('Failed to fetch GAD-7 results:', error.response ? error.response.data.message : error.message);
+        alert('Failed to fetch GAD-7 results.' + (error.response ? ` ${error.response.data.message}` : ' Please try again.'));
+      }
+    };
+
+    fetchUserProfile();
+    fetchGAD7Results();
+  }, []);
 
   // Mock therapy sessions data
   const [therapySessions] = useState([
@@ -24,6 +68,8 @@ const Profile = () => {
     { id: 4, date: '2024-02-05', type: 'CBT Session 4', duration: '45 min', status: 'Scheduled' },
     { id: 5, date: '2024-02-12', type: 'CBT Session 5', duration: '45 min', status: 'Scheduled' }
   ]);
+
+  
 
   const getAnxietyLevelColor = (level) => {
     switch (level.toLowerCase()) {
@@ -141,16 +187,16 @@ const Profile = () => {
                 {/* GAD-7 Score Section */}
                 <div className="bg-slate-100 rounded-xl p-4 mb-8">
                   <div className="text-sm text-slate-600 mb-1">GAD-7 Score</div>
-                  <div className="text-3xl font-bold text-slate-600">{userData.gad7Score}</div>
+                  <div className="text-3xl font-bold text-slate-600">{userData.totalScore}</div>
                 </div>
                 
                 {/* Anxiety Level Indicator */}
                 <div className="mb-12">
-                  <div className="mb-3 text-lg text-slate-500 font-semibold">{userData.anxietyLevel}</div>
+                  <div className="mb-3 text-lg text-slate-500 font-semibold">{userData.severityLevel}</div>
                   <div className="w-full bg-slate-200 rounded-full h-3 mb-2">
                     <div 
-                      className={`h-3 rounded-full ${getAnxietyLevelColor(userData.anxietyLevel)}`}
-                      style={{ width: getAnxietyLevelWidth(userData.anxietyLevel) }}
+                      className={`h-3 rounded-full ${getAnxietyLevelColor(userData.severityLevel)}`}
+                      style={{ width: getAnxietyLevelWidth(userData.severityLevel) }}
                     ></div>
                   </div>
                 </div>

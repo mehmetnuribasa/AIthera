@@ -4,10 +4,18 @@ import {
     getUser,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    getCurrentUser
 } from '../controllers/userController.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Middleware to authenticate user
+router.use(authenticateToken);
+
+// Get current user
+router.get('/current', getCurrentUser);
 
 //Get all users
 router.get('/', getUsers);

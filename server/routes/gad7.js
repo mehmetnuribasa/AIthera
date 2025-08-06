@@ -1,7 +1,8 @@
 import express from 'express';
 import {
     createGAD7,
-    checkGAD7Status
+    checkGAD7Status,
+    getGAD7Results
 } from '../controllers/gad7Controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 
@@ -15,5 +16,8 @@ router.post('/', createGAD7);
 
 // Check GAD-7 assessment status for a user (no userId parameter needed - uses authenticated user)
 router.get('/check', checkGAD7Status);
+
+// Get GAD-7 results for a user
+router.get('/results', getGAD7Results);
 
 export default router;

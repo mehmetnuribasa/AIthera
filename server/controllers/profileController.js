@@ -73,9 +73,9 @@ export const createProfile = async (req, res, next) => {
 };
 
 // @desc Update user profile
-// @route PUT /api/profile/:id
+// @route PUT /api/profile
 export const updateProfile = async (req, res, next) => {
-    const id = parseInt(req.params.id);
+    const userId = req.user.id; // Get user ID from authenticated request
     const { age, gender, sleepPattern, stressLevel, hasDiagnosis, usesMedication, dreamRecallLevel } = req.body;
 
     try {
@@ -119,20 +119,20 @@ export const updateProfile = async (req, res, next) => {
         }
 
         // Update profile
-        const query = `UPDATE user_profiles SET ${fields.join(', ')} WHERE id = ?`;
+        const query = `UPDATE user_profiles SET ${fields.join(', ')} WHERE user_id = ?`;
         
-        const [result] = await pool.query(query, [...values, id]);
+        const [result] = await pool.query(query, [...values, userId]);
 
         // Check if profile was found and updated
         if (result.affectedRows === 0) {
-            const error = new Error(`Profile with id ${id} not found`);
+            const error = new Error(`Profile with user id ${userId} not found`);
             error.status = 404;
             return next(error);
         }
 
         const [updatedProfile] = await pool.query(
-            "SELECT * FROM user_profiles WHERE id = ?",
-            [id]
+            "SELECT * FROM user_profiles WHERE user_id = ?",
+            [userId]
         );
         res.status(200).json(updatedProfile[0]);
     } catch (error) {
@@ -141,7 +141,7 @@ export const updateProfile = async (req, res, next) => {
 };
 
 // @desc Check if user has profile by user_id
-// @route GET /api/profile/check/:userId
+// @route GET /api/profile/check
 export const checkUserProfile = async (req, res, next) => {
     const userId = req.user.id; // Get user ID from authenticated request
 

@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        checkAuthStatus();
+        checkAuthStatus();        
     }, []);
 
     const updateProfileStatus = async () => {

@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children, allowPublic = false }) => {
             return <Navigate to="/profile" replace />;
         }
         
-        // Render children for all cases
+        // Render children for all other cases
         return children;
     }
 
@@ -51,7 +51,7 @@ const ProtectedRoute = ({ children, allowPublic = false }) => {
         return <Navigate to="/profile" replace />;
     }
 
-    // Render the protected component if authenticated and has profile (or on onboarding)
+   // Render children for all other cases
     return children; 
 }
 

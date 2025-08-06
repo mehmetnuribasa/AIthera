@@ -24,13 +24,15 @@ export const createGAD7 = async (req, res, next) => {
         }
 
         // Calculate severity level based on total score
-        const totalScore = question1 + question2 + question3 + question4 + question5 + question6 + question7;
+        const totalScore = parseInt(question1) + parseInt(question2) + parseInt(question3) + parseInt(question4) + parseInt(question5) + parseInt(question6) + parseInt(question7);
         const severityLevel = totalScore <= 4 ? 'minimal' : totalScore <= 9 ? 'mild' : totalScore <= 14 ? 'moderate' : 'severe';
-        
+        const recommended_therapy = severityLevel === 'minimal' ? 'Mindfulness' : severityLevel === 'mild' ? 'ACT' : severityLevel === 'moderate' ? 'CBT' : 'CBT + EMDR';
+        const total_sessions = severityLevel === 'minimal' ? 4 : severityLevel === 'mild' ? 6 : severityLevel === 'moderate' ? 8 : 12;
+
         const [result] = await pool.query(
-            `INSERT INTO gad7_results (user_id, question1, question2, question3, question4, question5, question6, question7, severityLevel)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [user_id, question1, question2, question3, question4, question5, question6, question7, severityLevel]
+            `INSERT INTO gad7_results (user_id, question1, question2, question3, question4, question5, question6, question7, totalScore, severityLevel, recommended_therapy, total_sessions)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [user_id, question1, question2, question3, question4, question5, question6, question7, totalScore, severityLevel, recommended_therapy, total_sessions]
         );
 
         // Get the inserted record using the insertId
@@ -75,3 +77,26 @@ export const checkGAD7Status = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc Get GAD-7 results for a user
+// @route GET /api/gad7/results
+export const getGAD7Results = async (req, res, next) => {
+    const userId = req.user.id; // Get user ID from authenticated request
+
+    try {
+        const [results] = await pool.query(
+            "SELECT * FROM gad7_results WHERE user_id = ?",
+            [userId]
+        );
+
+        if (results.length === 0) {
+            const error = new Error(`No GAD-7 results found for user with id ${userId}`);
+            error.status = 404;
+            return next(error);
+        }
+
+        res.status(200).json(results);
+    } catch (error) {
+        next(error);
+    }
+}
