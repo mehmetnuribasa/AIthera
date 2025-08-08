@@ -10,8 +10,8 @@ const Profile = () => {
     severityLevel: '',
     totalScore: '',
     totalSessions: '',
-    recommendedTherapy: '',
-    therapyProgress: 65
+    recommendedTherapy: [],
+    therapyProgress: 0
   });
 
   const [activeTab, setActiveTab] = useState('assessment');
@@ -45,10 +45,10 @@ const Profile = () => {
 
         setUserData((prevData) => ({
           ...prevData,
-          totalScore: response.data[0].totalScore,
-          severityLevel: response.data[0].severityLevel,
-          totalSessions: response.data[0].total_sessions,          
-          recommendedTherapy: response.data[0].recommended_therapy
+          totalScore: response.data.totalScore,
+          severityLevel: response.data.severityLevel,
+          totalSessions: response.data.total_sessions,
+          recommendedTherapy: response.data.recommended_therapy ? JSON.parse(response.data.recommended_therapy) : []
         }));
       } catch (error) {
         console.error('Failed to fetch GAD-7 results:', error.response ? error.response.data.message : error.message);
@@ -70,6 +70,64 @@ const Profile = () => {
   ]);
 
   
+  const therapies = {
+    'ACT': {
+      name: 'Acceptance and Commitment Therapy (ACT)',
+      description: 'ACT teaches individuals to accept difficult emotions instead of fighting them and to commit to actions that align with their personal values. ' +
+                   'It improves psychological flexibility and reduces the struggle with thoughts through mindfulness and value-driven behavior.'
+    },
+    'CBT': {
+      name: 'Cognitive Behavioral Therapy (CBT)', 
+      description: 'CBT helps individuals recognize their negative thought patterns and replace them with more realistic and healthy ones. ' +
+                   'It uses techniques such as behavioral experiments, thought journaling, and generating alternative thoughts.'
+    },
+    'Mindfulness': {
+      name: 'Mindfulness-Based Interventions',
+      description: 'Mindfulness-based interventions help individuals focus on the present moment without judgment. ' +
+                   'They are effective for reducing stress, anxiety, and rumination through techniques like meditation, breathing exercises, and body scanning.'
+    },
+    'EMDR': {
+      name: 'Eye Movement Desensitization and Reprocessing (EMDR)',
+      description: 'EMDR is primarily used to treat trauma and post-traumatic stress disorder (PTSD). ' +
+                   'It helps individuals process and reframe disturbing memories by using bilateral stimulation (like guided eye movements) while recalling traumatic events.'
+    },
+    'DBT': {
+      name: 'Dialectical Behavior Therapy (DBT)',
+      description: 'DBT is a type of cognitive-behavioral therapy that focuses on teaching skills to manage emotions, tolerate distress, and improve relationships. ' +
+                   'It is particularly effective for individuals with borderline personality disorder and those who experience intense emotional responses.'
+    }
+  };
+
+
+  const getRecommendedTherapy = () => {
+    // Always treat recommendedTherapy as an array
+    if (!userData.recommendedTherapy || userData.recommendedTherapy.length === 0) {
+      return {
+        name: 'Cognitive Behavioral Therapy (CBT)',
+        description: 'CBT helps individuals recognize their negative thought patterns and replace them with more realistic and healthy ones. ' +
+                     'It uses techniques such as behavioral experiments, thought journaling, and generating alternative thoughts.'
+      };
+    }
+    
+    // If multiple therapy types, show all of them
+    if (userData.recommendedTherapy.length > 1) {
+      const therapyNames = userData.recommendedTherapy.map(type => therapies[type]?.name || type).join(', ');
+      const descriptions = userData.recommendedTherapy.map(type => therapies[type]?.description || '').filter(desc => desc);
+      
+      return {
+        name: therapyNames,
+        description: descriptions.length > 0 ? descriptions.join(' ') : 'Multiple therapy approaches have been recommended based on your assessment.'
+      };
+    }
+    
+    // Single therapy type
+    const therapyKey = userData.recommendedTherapy[0];
+    return therapies[therapyKey] || {
+      name: 'Cognitive Behavioral Therapy (CBT)',
+      description: 'CBT helps individuals recognize their negative thought patterns and replace them with more realistic and healthy ones. ' +
+                   'It uses techniques such as behavioral experiments, thought journaling, and generating alternative thoughts.'
+    };
+  };
 
   const getAnxietyLevelColor = (level) => {
     switch (level.toLowerCase()) {
@@ -91,6 +149,7 @@ const Profile = () => {
     }
   };
 
+  //elşew
   const getStatusColor = (status) => {
     switch (status) {
       case 'Completed': return 'bg-green-100 text-green-800';
@@ -206,9 +265,9 @@ const Profile = () => {
                   <h4 className="font-bold text-slate-600 text-md mb-5">Recommended Therapy</h4>
                   <div className="flex items-start gap-4">
                     <div className="flex-1">
-                      <div className="font-bold text-slate-500 mb-2">{userData.recommendedTherapy}</div>
+                      <div className="font-bold text-slate-500 mb-2">{getRecommendedTherapy().name}</div>
                       <p className="text-slate-500 text-sm leading-relaxed">
-                        CBT is a type of psychotherapy that helps people identify and change negative thinking patterns and behaviors. It's effective for anxiety, depression, and other mental health issues.
+                        {getRecommendedTherapy().description}
                       </p>
                     </div>
                     <div className="w-24 h-24 bg-orange-100 rounded-xl flex items-center justify-center">
@@ -221,7 +280,7 @@ const Profile = () => {
                 
                 {/* Summary and Call to Action */}
                 <div className="text-slate-500 text-sm mb-8">
-                  Based on your GAD-7 score, we recommend a Cognitive Behavioral Therapy (CBT) plan. You'll go through 5 CBT sessions tailored to your needs.
+                  Based on your GAD-7 score, we recommend a {getRecommendedTherapy().name} plan. You'll go through {userData.totalSessions} therapy sessions tailored to your needs.
                 </div>
                 
                 <div className="text-right">

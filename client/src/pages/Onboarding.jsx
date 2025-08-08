@@ -17,6 +17,11 @@ const Onboarding = () => {
     dreamRecallLevel: ''
   });
 
+  const validateAge = (age) => {
+    const ageNum = parseInt(age);
+    return ageNum > 0 && ageNum <= 120;
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
@@ -28,6 +33,12 @@ const Onboarding = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate age
+    if (!validateAge(formData.age)) {
+      alert('Please enter a valid age between 1 and 120.');
+      return;
+    }
     
     try {
       const response = await axiosInstance.post('/profile', formData);
@@ -69,7 +80,10 @@ const Onboarding = () => {
               name="age"
               type="number"
               value={formData.age}
-              onChange={handleInputChange}
+              onChange={e => {
+                handleInputChange(e);
+                validateAge(e.target.value);
+              }}
               placeholder="Enter your age"
               required
               className="w-full px-4 py-3 rounded-xl bg-slate-100 text-slate-500 placeholder-slate-500 focus:outline-none"
@@ -147,7 +161,7 @@ const Onboarding = () => {
           {/* Previous Diagnosis Field */}
           <div>
             <label htmlFor="hasDiagnosis" className="block text-sm font-semibold text-slate-600 mb-2">
-              Previous Diagnosis
+              Previous Diagnosis about Mental Health
             </label>
             <select
               id="hasDiagnosis"
@@ -166,7 +180,7 @@ const Onboarding = () => {
           {/* Medication Usage Field */}
           <div>
             <label htmlFor="usesMedication" className="block text-sm font-semibold text-slate-600 mb-2">
-              Medication Usage
+              Medication Usage about Mental Health
             </label>
             <select
               id="usesMedication"
@@ -177,15 +191,15 @@ const Onboarding = () => {
               className="w-full px-4 py-3 rounded-xl bg-slate-100 text-slate-500 focus:outline-none"
             >
               <option value="">Do you have any medication usage?</option>
-              <option value="evet">Yes</option>
-              <option value="hayir">No</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
             </select>
           </div>
 
           {/* Dream Recall Level Field */}
           <div>
             <label htmlFor="dreamRecallLevel" className="block text-sm font-semibold text-slate-600 mb-2">
-              Dream Recall Level (if any)
+              Dream Recall Level
             </label>
             <select
               id="dreamRecallLevel"

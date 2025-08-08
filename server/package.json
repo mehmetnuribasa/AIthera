@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google/genai": "^1.13.0",
     "bcrypt": "^6.0.0",
     "color": "^5.0.0",
     "colors": "^1.4.0",

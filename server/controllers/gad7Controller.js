@@ -1,12 +1,34 @@
 import pool from '../config/pool.js';
+import { getTherapyRecommendation } from '../services/aiService.js';
 
 // @desc Create a new GAD-7 assessment
 // @route POST /api/gad7
 export const createGAD7 = async (req, res, next) => {
-    const { question1, question2, question3, question4, question5, question6, question7 } = req.body;
+    const { question1, question2, question3, question4, question5, question6, question7, question8 } = req.body;
 
-    if(!question1 || !question2 || !question3 || !question4 || !question5 || !question6 || !question7) {
-        const error = new Error('Please include all required fields: question1, question2, question3, question4, question5, question6, question7');
+    if(!question1 || !question2 || !question3 || !question4 || !question5 || !question6 || !question7 || !question8) {
+        const error = new Error('Please include all required fields: question1, question2, question3, question4, question5, question6, question7, question8');
+        error.status = 400;
+        return next(error);
+    }
+
+    // Validate answers
+    const validAnswers = ['0', '1', '2', '3'];
+    if(!validAnswers.includes(question1) ||
+       !validAnswers.includes(question2) ||
+       !validAnswers.includes(question3) ||
+       !validAnswers.includes(question4) ||
+       !validAnswers.includes(question5) ||
+       !validAnswers.includes(question6) ||
+       !validAnswers.includes(question7)) {
+        const error = new Error('Invalid answers. Please provide answers between 0 and 3.');
+        error.status = 400;
+        return next(error);
+    }
+
+    // validate question8
+    if (typeof question8 !== 'string' || question8.trim().length < 20) {
+        const error = new Error('question8 must be at least 20 characters long.');
         error.status = 400;
         return next(error);
     }
@@ -23,19 +45,43 @@ export const createGAD7 = async (req, res, next) => {
             return res.status(409).json({ message: "GAD-7 assessment already exists for this user." });
         }
 
+
         // Calculate severity level based on total score
         const totalScore = parseInt(question1) + parseInt(question2) + parseInt(question3) + parseInt(question4) + parseInt(question5) + parseInt(question6) + parseInt(question7);
         const severityLevel = totalScore <= 4 ? 'minimal' : totalScore <= 9 ? 'mild' : totalScore <= 14 ? 'moderate' : 'severe';
-        const recommended_therapy = severityLevel === 'minimal' ? 'Mindfulness' : severityLevel === 'mild' ? 'ACT' : severityLevel === 'moderate' ? 'CBT' : 'CBT + EMDR';
-        const total_sessions = severityLevel === 'minimal' ? 4 : severityLevel === 'mild' ? 6 : severityLevel === 'moderate' ? 8 : 12;
 
+        // Insert new GAD-7 assessment
         const [result] = await pool.query(
-            `INSERT INTO gad7_results (user_id, question1, question2, question3, question4, question5, question6, question7, totalScore, severityLevel, recommended_therapy, total_sessions)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [user_id, question1, question2, question3, question4, question5, question6, question7, totalScore, severityLevel, recommended_therapy, total_sessions]
+            `INSERT INTO gad7_results (user_id, question1, question2, question3, question4, question5, question6, question7, question8, totalScore, severityLevel)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [user_id, question1, question2, question3, question4, question5, question6, question7, question8, totalScore, severityLevel]
         );
 
-        // Get the inserted record using the insertId
+        // Get profile results for AI recommendation
+        const [[profile]] = await pool.query(
+            "SELECT * FROM user_profiles WHERE user_id = ?",
+            [user_id]
+        );
+
+        if (!profile) {
+            return res.status(404).json({ message: "User profile not found." });
+        }
+
+        // We already have these values; no need to re-query DB
+        const gad7Result = { question8, totalScore };
+
+        // Get therapy recommendation from AI service
+        const recommendation = await getTherapyRecommendation(profile, gad7Result);
+
+        // console.log('AI Recommendation:', recommendation);
+
+        // Update GAD-7 results with AI recommendation
+        await pool.query(
+            `UPDATE gad7_results SET recommended_therapy = ?, total_sessions = ? WHERE id = ?`,
+            [JSON.stringify(recommendation.therapy_types), recommendation.session_count, result.insertId]
+        );
+
+        // Get the result
         const [newResult] = await pool.query(
             `SELECT * FROM gad7_results WHERE id = ?`,
             [result.insertId]
@@ -95,7 +141,7 @@ export const getGAD7Results = async (req, res, next) => {
             return next(error);
         }
 
-        res.status(200).json(results);
+        res.status(200).json(results[0]);
     } catch (error) {
         next(error);
     }

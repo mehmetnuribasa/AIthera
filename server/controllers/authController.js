@@ -63,16 +63,42 @@ export const loginUser = async (req, res, next) => {
 // @desc Signup user
 // @route POST /api/signup
 export const signupUser = async (req, res, next) => {
-     const {first_name, last_name, email, password, is_admin} = req.body;
+     const {first_name, last_name, email, password, confirm_password, is_admin} = req.body;
 
-    if(!first_name || !last_name || !email || !password) {
-        const error = new Error('Please include all required fields: first_name, last_name, email, password');
+    if(!first_name || !last_name || !email || !password || !confirm_password) {
+        const error = new Error('Please include all required fields: first_name, last_name, email, password, confirm_password');
+        error.status = 400;
+        return next(error);
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        const error = new Error('Please provide a valid email address');
+        error.status = 400;
+        return next(error);
+    }
+
+    // Password strength policy: min 8 chars, uppercase, lowercase, number, special char
+    const isLongEnough = typeof password === 'string' && password.length >= 8;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+    if (!(isLongEnough && hasUppercase && hasLowercase && hasNumber && hasSpecial)) {
+        const error = new Error('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
+        error.status = 400;
+        return next(error);
+    }
+
+    if (password !== confirm_password) {
+        const error = new Error('Passwords do not match');
         error.status = 400;
         return next(error);
     }
 
     try {
-
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const [result] = await pool.query(

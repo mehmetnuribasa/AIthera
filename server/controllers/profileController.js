@@ -42,6 +42,49 @@ export const createProfile = async (req, res, next) => {
         error.status = 400;
         return next(error);
     }
+    
+    // Validate age
+    if(age < 1 || age > 120) {
+        const error = new Error('Age must be between 1 and 120');
+        error.status = 400;
+        return next(error);
+    }
+
+    if(gender !== 'male' && gender !== 'female') {
+        const error = new Error('Gender must be either male or female');
+        error.status = 400;
+        return next(error);
+    }
+
+    if(sleepPattern !== 'regular' && sleepPattern !== 'irregular' && sleepPattern !== 'little_sleep' && sleepPattern !== 'too_much_sleep' && sleepPattern !== 'insomnia') {
+        const error = new Error('Sleep pattern must be one of the following: regular, irregular, little_sleep, too_much_sleep, insomnia');
+        error.status = 400;
+        return next(error);
+    }
+
+    if(stressLevel < 1 || stressLevel > 10) {
+        const error = new Error('Stress level must be between 1 and 10');
+        error.status = 400;
+        return next(error);
+    }
+
+    if(hasDiagnosis !== 'yes' && hasDiagnosis !== 'no') {
+        const error = new Error('Has diagnosis must be either yes or no');
+        error.status = 400;
+        return next(error);
+    }
+
+    if(usesMedication !== 'yes' && usesMedication !== 'no') {
+        const error = new Error('Uses medication must be either yes or no');
+        error.status = 400;
+        return next(error);
+    }
+
+    if(dreamRecallLevel !== 'don\'t_remember' && dreamRecallLevel !== 'rarely' && dreamRecallLevel !== 'sometimes' && dreamRecallLevel !== 'often' && dreamRecallLevel !== 'always' && dreamRecallLevel !== 'don\'t_dream') {
+        const error = new Error('Dream recall level must be one of the following: don\'t_remember, rarely, sometimes, often, always, don\'t_dream');
+        error.status = 400;
+        return next(error);
+    }
 
     const user_id = req.user.id; // Get user ID from authenticated request
 
