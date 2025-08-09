@@ -84,8 +84,6 @@ const Gad7 = () => {
     try {
       const response = await axiosInstance.post('/gad7', answers);
 
-      console.log('GAD-7 Test Result:', response.data);
-
       // Update GAD-7 status in AuthContext
       await updateGad7Status();
 

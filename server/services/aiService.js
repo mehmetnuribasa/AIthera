@@ -53,7 +53,26 @@ export async function getTherapyRecommendation(profile, gad7Result) {
             User response:
             "${gad7Result.question8}"
 
-            Please take this answer into account when recommending the most appropriate therapy method.`;
+            Please take this answer into account when recommending the most appropriate therapy method.
+            
+            
+            Additionally, based on the chosen therapy type(s) and session count, provide a structured plan for each session.
+
+            For each session:
+            - Give a clear "session_topic": the main theme or focus of that session.
+            - Give "session_goals": 2-3 specific outcomes we want to achieve or insights we want to gather from the user by the end of the session.
+            - Keep the topics aligned with the selected therapy type(s) and the user's specific issues.
+            - Ensure topics are progressive (later sessions can build upon earlier ones).
+            - Avoid straying too far from the planned session topic.
+            - Make the goals concrete and measurable (e.g., "User identifies 3 recurring thought patterns" instead of vague phrases like "User feels better").
+            - Limit the plan to the number of sessions recommended above.
+
+            Include this session plan in the JSON response as an array under the key "session_plan", where each item is:
+            {
+            "session_number": ,
+            "session_topic": "",
+            "session_goals": ["", ""]
+            }`;
 
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",

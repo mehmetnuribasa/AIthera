@@ -73,7 +73,7 @@ export const createGAD7 = async (req, res, next) => {
         // Get therapy recommendation from AI service
         const recommendation = await getTherapyRecommendation(profile, gad7Result);
 
-        // console.log('AI Recommendation:', recommendation);
+        console.log('AI Recommendation:', JSON.stringify(recommendation, null, 2));
 
         // Update GAD-7 results with AI recommendation
         await pool.query(
@@ -81,13 +81,40 @@ export const createGAD7 = async (req, res, next) => {
             [JSON.stringify(recommendation.therapy_types), recommendation.session_count, result.insertId]
         );
 
-        // Get the result
+
+        // Get session plans
+        const sessionValues = recommendation.session_plan.map((session) => [
+            user_id,
+            result.insertId, // gad7_results.id
+            session.session_number,
+            session.session_topic,
+            JSON.stringify(session.session_goals) // convert to JSON string
+        ]);
+
+        // Insert session plans into the database
+        await pool.query(
+            `INSERT INTO therapy_sessions (user_id, gad7_id, session_number, topic, session_goals)
+            VALUES ?`,
+            [sessionValues]
+        );
+
+
+        // Get the updated GAD-7 results
         const [newResult] = await pool.query(
             `SELECT * FROM gad7_results WHERE id = ?`,
             [result.insertId]
         );
 
-        res.status(201).json(newResult[0]);
+        // Get session plans
+        const [sessions] = await pool.query(
+            `SELECT * FROM therapy_sessions WHERE gad7_id = ? ORDER BY session_number`,
+            [result.insertId]
+        );
+
+        res.status(201).json({
+            ...newResult[0],
+            sessions: sessions
+        });
     } catch (error) {
         next(error);
     }
