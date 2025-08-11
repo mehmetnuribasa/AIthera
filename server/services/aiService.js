@@ -29,6 +29,13 @@ export async function getTherapyRecommendation(profile, gad7Result) {
             - Provide a brief clinical justification for your recommendation.
             - In the JSON response, use ONLY the abbreviated therapy type names: "CBT", "ACT", "Mindfulness", "EMDR", "DBT". Do NOT use full names or descriptive text in the "therapy_types" field.
 
+            In the "explanation" field, provide a concise but information-dense context the assistant can reuse during chat:
+            - Patient summary: age, gender, stress level, sleep pattern, medication use, and a 1-2 sentence synthesis of their main concern based on the open-ended answer.
+            - GAD-7 summary: total score and severity (minimal/mild/moderate/severe), and what that implies for therapy focus.
+            - Rationale for selected therapy types: why these were chosen for this patient.
+            - Session plan overview: total number of sessions recommended and how the sessions progress from basics to advanced skills (1-2 sentences). Mention which session ranges focus on which themes.
+
+            Keep it 6-10 sentences, clinician-grade, neutral, and reusable as a system context.
 
             Respond ONLY with a JSON object in the following format. Do NOT include code block markers like \`\`\` or \`\`\`json.
             {
@@ -80,9 +87,170 @@ export async function getTherapyRecommendation(profile, gad7Result) {
         });
 
         const recommendationObj = JSON.parse(response.text);
+
+        console.log('AI Recommendation:', JSON.stringify(recommendationObj, null, 2));
         return recommendationObj;
 
     } catch (error) {
         next(error);
     }
-}
+};
+
+export async function getWelcomeMessage(session) {
+    // Generate a AI welcome message
+    const welcomeMessage = `
+        You are a professional therapist conducting a therapy session.
+
+        Therapy Context:
+        ${session.session_explanation}
+        
+        Current Session:
+        - Session Number: ${session.session_number}
+        - Session Topic: ${session.topic}
+        - Session Goals: ${JSON.stringify(JSON.parse(session.session_goals))}
+
+        This is the first message in this therapy session. 
+        Please provide a warm, welcoming introduction that:
+
+        1. Greets the user and acknowledges their commitment to attending the session.
+        2. Briefly explains what this session will focus on (based on the topic).
+        3. States the session goals in simple, non-technical language.
+        4. Sets a collaborative tone by inviting the user to share their current thoughts, feelings, or recent experiences related to the topic.
+        5. Emphasizes that the conversation will stay focused on today\'s topic, but the user can request to revisit past points if needed.
+        6. Creates a safe, non-judgmental atmosphere.
+
+        Keep it conversational, warm, and human — no more than 3 sentences. Avoid sounding scripted or robotic.`;
+    
+    const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY
+    });
+
+    const chat = ai.chats.create({
+        model: "gemini-2.5-flash",
+    });
+
+    const stream = await chat.sendMessageStream({
+        message: welcomeMessage,
+    });
+
+    let responseText = "";
+    for await (const chunk of stream) {
+        responseText += chunk.text;
+    }
+
+    return responseText.trim();
+};
+
+export async function getChatMessage(session, messagesResult, message) {
+    // Generate a AI response
+    const sessionContext = `
+        You are a professional therapist conducting a therapy session.
+
+        Therapy Context:
+        ${session.session_explanation}
+        
+        Current Session:
+        - Session Number: ${session.session_number}
+        - Session Topic: ${session.topic}
+        - Session Goals: ${JSON.stringify(JSON.parse(session.session_goals))}
+
+        During this conversation:
+        - Keep all responses relevant to the session topic and goals.
+        - Use a warm, empathetic, and encouraging tone.
+        - Ask thoughtful, open-ended questions that guide the user toward achieving today's goals.
+        - If the user strays far from the topic, gently acknowledge their point, then guide the conversation back to the session's focus.
+        - Keep responses concise but impactful — avoid giving too much information at once.
+        - Periodically connect the discussion to the session goals, helping the user see their progress.
+        - End the session only when the goals have been addressed, or the user has clearly indicated they wish to stop.
+
+        Respond as a supportive, human-like therapist — avoid sounding like a script.`;
+
+    
+    const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+    });
+
+    // Prepare the chat history for the AI
+    const aiHistory = messagesResult.map((msg) => ({
+        role: msg.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.message }],
+    }));
+
+    const chat = ai.chats.create({
+        model: "gemini-2.5-flash",
+        history: aiHistory,
+    });
+
+    // Send the session context and last user message to the AI
+    const stream = await chat.sendMessageStream({
+        message: sessionContext + "\n\nUser: " + message,
+    });
+
+    let responseText = "";
+    // Get the response from the AI
+    for await (const chunk of stream) {
+        responseText += chunk.text;
+    }
+
+    return responseText.trim();
+};
+
+export async function getClosingMessage(session, messagesResult, message) {
+    // Generate a closing message
+    const closingMessage = `
+        You are a professional therapist concluding a therapy session.
+
+        Therapy Context:
+        ${session.session_explanation}
+
+        Current Session:
+        - Session Number: ${session.session_number}
+        - Session Topic: ${session.topic}
+        - Session Goals: ${JSON.stringify(JSON.parse(session.session_goals))}
+
+        The conversation for this session is now ending because the goals have been addressed or the user has indicated they wish to stop.
+
+        Please provide a warm, supportive closing message that:
+
+        1. Acknowledges the user's participation and effort in the session.
+        2. Briefly summarizes the main progress or key insight from today's conversation in simple, encouraging terms.
+        3. Reinforces the value of the skills or insights gained today.
+        4. Encourages the user to reflect on and apply what they learned before the next session.
+        5. Expresses optimism and support for their ongoing journey.
+        6. Avoids introducing any new topics or homework unless already discussed earlier.
+
+        Keep it warm, concise, and human — no more than 3 sentences.`;
+
+        
+        const ai = new GoogleGenAI({
+            apiKey: process.env.GEMINI_API_KEY,
+        });
+
+        // Prepare the chat history for the AI
+        const aiHistory = messagesResult.map((msg) => ({
+            role: msg.sender === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.message }],
+        }));
+
+        const chat = ai.chats.create({
+            model: "gemini-2.5-flash",
+            history: aiHistory,
+        });
+
+        // Send the session context and last user message to the AI
+        const stream = await chat.sendMessageStream({
+            message: closingMessage + "\n\nUser: " + message,
+        });
+
+        let responseText = "";
+        // Get the response from the AI
+        for await (const chunk of stream) {
+            responseText += chunk.text;
+        }
+
+        return responseText.trim();
+};
+
+export async function summarizeSessionInBackground(session) {
+    
+};

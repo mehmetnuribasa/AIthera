@@ -42,7 +42,9 @@ export const createGAD7 = async (req, res, next) => {
             [user_id]
         );
         if (existing.length > 0) {
-            return res.status(409).json({ message: "GAD-7 assessment already exists for this user." });
+            const error = new Error("GAD-7 assessment already exists for this user.");
+            error.status = 409;
+            return next(error);
         }
 
 
@@ -64,7 +66,9 @@ export const createGAD7 = async (req, res, next) => {
         );
 
         if (!profile) {
-            return res.status(404).json({ message: "User profile not found." });
+            const error = new Error("User profile not found.");
+            error.status = 404;
+            return next(error);
         }
 
         // We already have these values; no need to re-query DB
@@ -81,24 +85,6 @@ export const createGAD7 = async (req, res, next) => {
             [JSON.stringify(recommendation.therapy_types), recommendation.session_count, result.insertId]
         );
 
-
-        // Get session plans
-        const sessionValues = recommendation.session_plan.map((session) => [
-            user_id,
-            result.insertId, // gad7_results.id
-            session.session_number,
-            session.session_topic,
-            JSON.stringify(session.session_goals) // convert to JSON string
-        ]);
-
-        // Insert session plans into the database
-        await pool.query(
-            `INSERT INTO therapy_sessions (user_id, gad7_id, session_number, topic, session_goals)
-            VALUES ?`,
-            [sessionValues]
-        );
-
-
         // Get the updated GAD-7 results
         const [newResult] = await pool.query(
             `SELECT * FROM gad7_results WHERE id = ?`,
@@ -106,14 +92,24 @@ export const createGAD7 = async (req, res, next) => {
         );
 
         // Get session plans
-        const [sessions] = await pool.query(
-            `SELECT * FROM therapy_sessions WHERE gad7_id = ? ORDER BY session_number`,
-            [result.insertId]
-        );
+        const sessionValues = recommendation.session_plan.map((session) => [
+            user_id,
+            result.insertId, // gad7_results.id
+            session.session_number,
+            session.session_topic,
+            JSON.stringify(session.session_goals), // convert to JSON string
+            recommendation.explanation
+        ]);
 
+        // Insert session plans into the database in background
+        pool.query(
+            `INSERT INTO therapy_sessions (user_id, gad7_id, session_number, topic, session_goals, session_explanation)
+            VALUES ?`,
+            [sessionValues]
+        );
+        
         res.status(201).json({
-            ...newResult[0],
-            sessions: sessions
+            ...newResult[0]
         });
     } catch (error) {
         next(error);
