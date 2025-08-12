@@ -11,6 +11,7 @@ import users from './routes/users.js';
 import auth from './routes/auth.js';
 import profiles from './routes/profile.js';
 import gad7 from './routes/gad7.js';
+import sessions from './routes/session.js';
 import ai from './routes/ai.js';
 
 // Load environment variables from .env file
@@ -77,6 +78,8 @@ app.use('/api/auth', auth);
 app.use("/api/profile", profiles);
 
 app.use('/api/gad7', gad7);
+
+app.use('/api/sessions', sessions);
 
 app.use('/api/ai', ai);
 

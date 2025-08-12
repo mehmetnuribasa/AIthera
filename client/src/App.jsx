@@ -13,6 +13,7 @@ import Signup from './pages/Signup';
 import Onboarding from './pages/Onboarding';
 import Gad7 from './pages/Gad7';
 import Navbar from './components/Navbar';
+import Chat from './pages/Chat';
 
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/gad7" element={<ProtectedRoute><Gad7 /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />          
+          <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         </Routes>
       </Router>
     </AuthProvider>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 
 const Profile = () => {
@@ -14,7 +15,16 @@ const Profile = () => {
     therapyProgress: 0
   });
 
+  const [therapySessions, setTherapySessions] = useState([{
+    session_number: 1,
+    topic:'',
+    status:'',
+    wellness_score: 0
+  }]);
+
   const [activeTab, setActiveTab] = useState('assessment');
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     
@@ -56,18 +66,21 @@ const Profile = () => {
       }
     };
 
+    // Fetch therapy sessions
+    const fetchTherapySessions = async () => {
+      try {
+        const response = await axiosInstance.get('/sessions');
+        setTherapySessions(response.data);
+      } catch (error) {
+        console.error('Failed to fetch therapy sessions:', error.response ? error.response.data.message : error.message);
+        alert('Failed to fetch therapy sessions.' + (error.response ? ` ${error.response.data.message}` : ' Please try again.'));
+      }
+    };
+
     fetchUserProfile();
     fetchGAD7Results();
+    fetchTherapySessions();
   }, []);
-
-  // Mock therapy sessions data
-  const [therapySessions] = useState([
-    { id: 1, date: '2024-01-15', type: 'CBT Session 1', duration: '45 min', status: 'Completed' },
-    { id: 2, date: '2024-01-22', type: 'CBT Session 2', duration: '45 min', status: 'Completed' },
-    { id: 3, date: '2024-01-29', type: 'CBT Session 3', duration: '45 min', status: 'Scheduled' },
-    { id: 4, date: '2024-02-05', type: 'CBT Session 4', duration: '45 min', status: 'Scheduled' },
-    { id: 5, date: '2024-02-12', type: 'CBT Session 5', duration: '45 min', status: 'Scheduled' }
-  ]);
 
   
   const therapies = {
@@ -98,6 +111,11 @@ const Profile = () => {
     }
   };
 
+  const handleSessionClick = (session) => {
+    if(session.status !== "not_started") {
+      navigate(`/chat?s=${session.session_number}`);
+    }
+  };
 
   const getRecommendedTherapy = () => {
     // Always treat recommendedTherapy as an array
@@ -149,13 +167,14 @@ const Profile = () => {
     }
   };
 
-  //elşew
+  
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Completed': return 'bg-green-100 text-green-800';
-      case 'Scheduled': return 'bg-blue-100 text-blue-800';
-      case 'Cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'completed': return 'bg-green-100 text-green-700';
+      case 'not_started': return 'bg-red-100 text-red-700';
+      case 'in_queue': return 'bg-blue-100 text-blue-700';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-700';
+      default: return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -284,7 +303,10 @@ const Profile = () => {
                 </div>
                 
                 <div className="text-right">
-                  <button className="bg-[var(--color-primary)] text-white px-4 py-4 rounded-xl font-semibold hover:bg-[var(--color-secondary)] hover:cursor-pointer transition ease-linear duration-300">
+                  <button 
+                    className="bg-[var(--color-primary)] text-white px-4 py-4 rounded-xl font-semibold hover:bg-[var(--color-secondary)] hover:cursor-pointer transition ease-linear duration-300"
+                    onClick={() => setActiveTab('therapy')}
+                  >
                     Continue Therapy
                   </button>
                 </div>
@@ -297,19 +319,19 @@ const Profile = () => {
                 
                 {/* Progress Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-6">
+                  <div className="bg-blue-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-blue-900 mb-2">Anxiety Management</h3>
                     <div className="text-3xl font-bold text-blue-900 mb-2">75%</div>
                     <p className="text-blue-800 text-sm">Improved from last month</p>
                   </div>
                   
-                  <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-6">
+                  <div className="bg-green-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-green-900 mb-2">Session Attendance</h3>
                     <div className="text-3xl font-bold text-green-900 mb-2">92%</div>
                     <p className="text-green-800 text-sm">Excellent consistency</p>
                   </div>
                   
-                  <div className="bg-gradient-to-br from-red-100 to-red-200 rounded-xl p-6">
+                  <div className="bg-red-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-red-900 mb-2">Wellness Score</h3>
                     <div className="text-3xl font-bold text-red-900 mb-2">8.5/10</div>
                     <p className="text-red-800 text-sm">Strong improvement</p>
@@ -322,26 +344,40 @@ const Profile = () => {
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold text-slate-500">Therapy Sessions</h2>
-                  <button className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-xl hover:bg-[var(--color-secondary)] hover:cursor-pointer transition ease-linear duration-300">
-                    Schedule Session
-                  </button>
                 </div>
                 
                 <div className="space-y-4">
                   {therapySessions.map((session) => (
-                    <div key={session.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                    <div
+                      key={session.session_number}
+                      className={`flex items-center justify-between p-4 bg-slate-50 rounded-2xl transition ease-in-out duration-300
+                                  ${session.status !== 'not_started' ? 'hover:cursor-pointer hover:scale-101' : 'hover:cursor-not-allowed opacity-60'}`}
+                      onClick={() => handleSessionClick(session)}
+                    >
                       <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
-                          <span className="text-white font-bold">{session.id}</span>
+                          <span className="text-white font-bold">{session.session_number}</span>
                         </div>
                         <div>
-                          <h3 className="font-semibold text-slate-600">{session.type}</h3>
-                          <p className="text-slate-500 text-sm">{session.date} • {session.duration}</p>
+                          <h3 className="font-semibold text-slate-600">Session {session.session_number}</h3>
+                          <p className="text-slate-500 text-sm">45 min • {session.topic}</p>
                         </div>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(session.status)}`}>
-                        {session.status}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-2 rounded-full text-xs font-medium ${getStatusColor(session.status)}`}>
+                          {session.status === 'completed' && 'Completed'}
+                          {session.status === 'not_started' && 'Not Started'}
+                          {session.status === 'in_queue' && 'Next Session'}
+                          {session.status === 'in_progress' && 'In Progress'}
+                        </span>
+                        {(session.status !== 'not_started') && (
+                          <div className="text-slate-400">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

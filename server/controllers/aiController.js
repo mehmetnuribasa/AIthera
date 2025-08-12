@@ -29,8 +29,8 @@ export const chatWithAI = async (req, res, next) => {
         
         const session = sessionResult[0];
 
-        if(session.status === 'completed') {
-            const error = new Error("Session is already completed.");
+        if(session.status !== 'in_progress') {
+            const error = new Error("Can not continue this session.");
             error.status = 400;
             return next(error);
         }
@@ -96,6 +96,12 @@ export const chatWithAI = async (req, res, next) => {
             [session.id]
         );
 
+        // Mark the next session as in queue
+        await pool.query(
+            `UPDATE therapy_sessions SET status = 'in_queue' WHERE id = ?`,
+            [session.id + 1]
+        );
+
         // Summarize the session in the background
         summarizeSessionInBackground(session, messagesResult, message, closingMessage, summary);
 
@@ -138,6 +144,12 @@ export const startTherapySession = async (req, res, next) => {
             return next(error);
         }
 
+        if(session.status === 'not_started') {
+            const error = new Error("Can not start this session.");
+            error.status = 400;
+            return next(error);
+        }
+
         // Check if session already has messages
         const [messagesResult] = await pool.query(
             `SELECT * FROM therapy_messages WHERE session_id = ? ORDER BY timestamp ASC`,
@@ -160,6 +172,12 @@ export const startTherapySession = async (req, res, next) => {
 
             summary = prevSummary[0] ? prevSummary[0].summary : "";
         }
+
+        // Mark the session as in progress
+        await pool.query(
+            `UPDATE therapy_sessions SET status = 'in_progress' WHERE id = ?`,
+            [session.id]
+        );
 
         // Generate a AI welcome message
         const welcomeMessage = await getWelcomeMessage(session, summary);

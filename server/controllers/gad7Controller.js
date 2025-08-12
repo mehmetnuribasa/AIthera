@@ -107,6 +107,12 @@ export const createGAD7 = async (req, res, next) => {
             VALUES ?`,
             [sessionValues]
         );
+
+        // Mark the first session as in queue
+        pool.query(
+            `UPDATE therapy_sessions SET status = 'in_queue' WHERE user_id = ? AND session_number = ?`,
+            [user_id, 1]
+        );
         
         res.status(201).json({
             ...newResult[0]
