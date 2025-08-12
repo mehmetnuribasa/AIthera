@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import pool from "../config/pool.js";
 
 
 // @desc Get therapy recommendation based on user profile and GAD-7 results
@@ -86,6 +87,10 @@ export async function getTherapyRecommendation(profile, gad7Result) {
             contents: prompt,
         });
 
+        
+        // Clean up response.text to remove code block markers
+        response.text = response.text.trim().replace(/```(?:json)?([\s\S]*?)```/g, "$1").trim();
+
         const recommendationObj = JSON.parse(response.text);
 
         console.log('AI Recommendation:', JSON.stringify(recommendationObj, null, 2));
@@ -96,13 +101,12 @@ export async function getTherapyRecommendation(profile, gad7Result) {
     }
 };
 
-export async function getWelcomeMessage(session) {
+export async function getWelcomeMessage(session, summary) {
     // Generate a AI welcome message
     const welcomeMessage = `
         You are a professional therapist conducting a therapy session.
 
-        Therapy Context:
-        ${session.session_explanation}
+        ${session.session_number>1 ? "Previous Session Summary and Therapy Context: " + summary : "Therapy Context: " + session.session_explanation}
         
         Current Session:
         - Session Number: ${session.session_number}
@@ -141,14 +145,15 @@ export async function getWelcomeMessage(session) {
     return responseText.trim();
 };
 
-export async function getChatMessage(session, messagesResult, message) {
+export async function getChatMessage(session, messagesResult, message, summary) {
+    console.log('Summary:', summary);
+
     // Generate a AI response
     const sessionContext = `
         You are a professional therapist conducting a therapy session.
 
-        Therapy Context:
-        ${session.session_explanation}
-        
+        ${session.session_number>1 ? "Previous Session Summary and Therapy Context: " + summary : "Therapy Context: " + session.session_explanation}
+
         Current Session:
         - Session Number: ${session.session_number}
         - Session Topic: ${session.topic}
@@ -200,8 +205,7 @@ export async function getClosingMessage(session, messagesResult, message) {
     const closingMessage = `
         You are a professional therapist concluding a therapy session.
 
-        Therapy Context:
-        ${session.session_explanation}
+        ${session.session_number>1 ? "Previous Session Summary and Therapy Context: " + summary : "Therapy Context: " + session.session_explanation}
 
         Current Session:
         - Session Number: ${session.session_number}
@@ -251,6 +255,107 @@ export async function getClosingMessage(session, messagesResult, message) {
         return responseText.trim();
 };
 
-export async function summarizeSessionInBackground(session) {
+export async function summarizeSessionInBackground(session, messagesResult, message, closingMessage, summary) {
+    const prompt = `
+        You are a professional therapist summarizing a completed therapy session.
+
+        ${session.session_number>1 ? "Previous Session Summary and Therapy Context: " + summary : "Therapy Context: " + session.session_explanation}
+
+        Input:
+        - Full conversation transcript between therapist and patient.
+        - Session Number: ${session.session_number}
+        - Session Topic: ${session.topic}
+        - Session Goals: ${JSON.stringify(JSON.parse(session.session_goals))}
+
+        Task:
+        1. Write a clear, concise **narrative summary** (max 250 words) that captures:
+        - The main points discussed during the session.
+        - How the patient engaged with the conversation.
+        - Progress made toward each session goal (in natural language, not bullet points).
+        - Any emotional changes or breakthroughs noticed.
+        - Any recurring themes or concerns that emerged.
+        - Suggestions for what might be useful to explore in the next session.
+
+        2. Expand the summary to also include **essential ongoing therapy context** so that future sessions can continue smoothly without the full transcript.  
+        Include:
+        - Key personal details relevant to therapy (age, stress level, sleep pattern, medication use).
+        - Latest known GAD-7 score and severity.
+        - Core therapy plan or approach being used.
+        - Any long-term patterns or challenges observed.
+        - Overall direction of treatment.
+
+        3. Clearly indicate:
+        - Goal Completion Status: State whether each listed session goal was fully achieved, partially achieved, or not addressed.
+        - Information Completeness: State whether all essential background/personal information for ongoing therapy is complete. If not, specify what is missing.
+        
+        4. Provide a **Wellness Score** from 0 to 100:
+        - 0 means severely struggling with no signs of improvement.
+        - 100 means thriving, with all goals met and strong emotional regulation.
+        - Consider tone, emotional regulation, progress toward goals, and self-reported symptoms.
+        - Briefly justify the score in 1-2 sentences.
+
+        Respond ONLY with a JSON object in the following format. Do NOT include code block markers like \`\`\` or \`\`\`json.
+        Output Format:
+        {
+        "summary": "<Your narrative summary here>",
+        "wellness_score": <number>
+        }
+
+        Guidelines:
+        - Base your analysis entirely on the transcript provided in chat history and the provided therapy context.
+        - The summary must be **self-contained** so it can serve as the only context for future sessions.
+        - Avoid repeating the full transcript; synthesize the most important points.
+        - Write warmly but objectively.`;
+
+
+    const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+    });
+
+    // Prepare the chat history for the AI
+    const aiHistory = messagesResult.map((msg) => ({
+        role: msg.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.message }],
+    }));
+
+    aiHistory.push({
+        role: 'user',
+        parts: [{ text: message }],
+    });
+
+    aiHistory.push({
+        role: 'model',
+        parts: [{ text: closingMessage }],
+    });
+
+    const chat = ai.chats.create({
+        model: "gemini-2.5-flash",
+        history: aiHistory,
+    });
+
+    // Send the session context and last user message to the AI
+    const stream = await chat.sendMessageStream({
+        message: prompt,
+    });
+
+    let responseText = "";
+    // Get the response from the AI
+    for await (const chunk of stream) {
+        responseText += chunk.text;
+    }
+
     
+    // Clean up responseText to remove code block markers
+    responseText = responseText.trim().replace(/```(?:json)?([\s\S]*?)```/g, "$1").trim();
+
+    const responseObj = JSON.parse(responseText);
+
+    console.log('AI Summary:', JSON.stringify(responseObj, null, 2));
+
+    await pool.query(
+        `UPDATE therapy_sessions SET summary = ?, wellness_score = ? WHERE id = ?`,
+        [responseObj.summary, responseObj.wellness_score || 0, session.id]
+    );
+
+    return responseObj;
 };
