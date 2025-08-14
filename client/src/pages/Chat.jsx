@@ -37,59 +37,71 @@ const Chat = () => {
     const [searchParams] = useSearchParams();
     const sessionNumber = useMemo(() => Number(searchParams.get('s') || 1), [searchParams]);
     const [messages, setMessages] = useState([]);
+    const [sessionInfo, setSessionInfo] = useState(null);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isStarting, setIsStarting] = useState(true);
     const [closed, setClosed] = useState(false);
-    const [sessionInfo, setSessionInfo] = useState(null);
     const [canSend, setCanSend] = useState(true);
+    const [remainingTime, setRemainingTime] = useState(null);
     const listRef = useRef(null);
 
-    
-    
+
     useEffect(() => {
         let mounted = true; // Track if component is mounted
 
         const bootstrap = async () => {
+            // Fetch session details
+            let current = null;
             try {
-                setIsStarting(true);
+                const sessionsRes = await axiosInstance.get('/sessions');
 
-                // Fetch session details
-                let current = null;
-                try {
-                    const sessionsRes = await axiosInstance.get('/sessions').then((res) => {
-                        const allSessions = Array.isArray(res.data) ? res.data : res.data?.sessions || [];
-                        current = allSessions.find((s) => Number(s.session_number) === Number(sessionNumber)) || null;
+                const allSessions = Array.isArray(sessionsRes.data) ? sessionsRes.data : sessionsRes.data?.sessions || [];
+                current = allSessions.find((s) => Number(s.session_number) === Number(sessionNumber)) || null;
 
-                        console.log('Current session:', current);
+                console.log('Current session:', current);
 
-                        if (mounted) setSessionInfo(current);
-                    });
-                } catch (error) {
-                    console.error('Failed to fetch sessions:', error);
-                    return;
+                if (mounted) setSessionInfo(current);
+            } catch (error) {
+                console.error('Failed to fetch sessions:', error);
+                return;
+            }
+
+            // Fetch past messages
+            try {
+                const msgRes = await axiosInstance.get(`/sessions/messages/${current.id}`);
+
+                const sessionMessages = msgRes.data.messages ? msgRes.data.messages : [];
+
+                console.log('Session messages:', sessionMessages);
+
+                if (mounted && sessionMessages.length > 0) {
+                    setMessages(
+                        sessionMessages.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.message }))
+                    );
                 }
+                
+            } catch (error) {
+                console.error('Failed to fetch messages:', error);
+            }
+        }
 
-                // Fetch past messages
-                try {
-                    const msgRes = await axiosInstance.get(`/sessions/messages/${current.id}`).then((res) => {
-                        const sessionMessages = res.data.messages ? res.data.messages : [];
+        bootstrap();
 
-                        console.log('Session messages:', sessionMessages);
+        return () => {
+            mounted = false;
+        };
 
-                        if (mounted && sessionMessages.length > 0) {
-                            setMessages(
-                                sessionMessages.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.message }))
-                            );
-                        }
-                    });
-                    
-                } catch (error) {
-                    console.error('Failed to fetch messages:', error);
-                }
+    }, [sessionNumber])
 
+    
+    useEffect(() => {
+        let mounted = true; // Track if component is mounted
+
+        const checkStatus = async () => {
+            try {
                 // Decide behavior based on status
-                const status = current?.status;
+                const status = sessionInfo?.status;
+
                 if (status === 'completed') {
                     if (mounted) {
                         setClosed(true);
@@ -98,22 +110,21 @@ const Chat = () => {
                     return;
                 }
 
-                if (status === 'in_queue' && messages.length === 0) {
+                else if (status === 'in_queue' && messages.length === 0) {
                     // Start the session to get welcome message
                     try {
                         setIsLoading(true);
 
-                        const res = await axiosInstance.post('/ai/start-session', { sessionNumber }).then((res) => {
-                            setMessages([{ role: 'assistant', text: res.data.message }]);
-                            setCanSend(true);
-                        });
+                        const res = await axiosInstance.post('/ai/start-session', { sessionNumber });
+                        setMessages([{ role: 'assistant', text: res.data.message }]);
+                        setCanSend(true);
                         
                         if (!mounted) return;
 
                     } catch (err) {
                         const alreadyStarted = err?.response?.status === 400;
                         if (!alreadyStarted) {
-                        alert(err?.response?.data?.message || 'Failed to start session');
+                            alert(err?.response?.data?.message || 'Failed to start session');
                         }
                     } finally {
                         setIsLoading(false);
@@ -124,29 +135,49 @@ const Chat = () => {
                     setCanSend(true);
                 }
                 
-                else {
-                    // not_started or unknown ,so view-only
+                else if(status === 'not_started') {
                     setCanSend(false);
                 }
-            } finally {
-                if (mounted) setIsStarting(false);
+            } catch (error) {
+                console.error('Error during bootstrap:', error);
             }
         };
 
-        bootstrap();
+        checkStatus();
 
         return () => {
             mounted = false;
         };
 
-    }, [sessionNumber]);
+    }, [sessionInfo, messages]);
 
 
     // Scroll to bottom on new messages
     useEffect(() => {
         listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages]);
+    
 
+    useEffect(() => {
+        if (!sessionInfo?.start_time) return;
+
+        const startTime = new Date(sessionInfo.start_time).getTime();
+        const endTime = startTime + 45 * 60 * 1000; // 45 minutes
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const timeLeft = Math.max(0, endTime - now); // Prevent negative time
+            setRemainingTime(timeLeft);
+
+            if (timeLeft === 0) {
+                setClosed(true);
+                setCanSend(false);
+                clearInterval(interval);
+            }
+        }, 1000);
+
+        // Cleanup interval on component unmount
+        return () => clearInterval(interval);
+    }, [sessionInfo]);
 
     const sendMessage = async () => {
         if (!checkInput()) return;
@@ -159,9 +190,9 @@ const Chat = () => {
         try {
             const res = await axiosInstance.post('/ai/chat', { sessionNumber, message: userMsg.text });
             const assistantText = res.data.message;
-            const isClosed = Boolean(res.data.closed);
             setMessages((prev) => [...prev, { role: 'assistant', text: assistantText }]);
             
+            const isClosed = Boolean(res.data.closed);
             if (isClosed) {
                 setClosed(true);
                 setCanSend(false);
@@ -199,18 +230,22 @@ const Chat = () => {
                       <p className="text-slate-400 text-sm mt-1">{sessionInfo.topic}</p>
                     )}
                 </div>
-
-                
-
-                {closed ? (
-                  <span className="text-xs font-semibold text-green-700 bg-green-100 px-3 py-2 rounded-full">Completed</span>
-                ) : (
-                  <span className="text-xs font-semibold text-yellow-700 bg-yellow-100 px-3 py-2 rounded-full">In Progress</span>
-                )}
+                <div className='flex space-x-5'>
+                    {remainingTime !== null && (
+                        <p className="text-slate-400 text-sm font-semibold mt-1">
+                            Time left: {Math.floor(remainingTime / 60000)}:{Math.floor((remainingTime % 60000) / 1000).toString().padStart(2, '0')}
+                        </p>
+                    )}
+                    {closed ? (
+                        <span className="text-xs font-semibold text-green-700 bg-green-100 px-3 py-2 rounded-full">Completed</span>
+                    ) : (
+                        <span className="text-xs font-semibold text-yellow-700 bg-yellow-100 px-3 py-2 rounded-full">In Progress</span>
+                    )}
+                </div>
             </div>
 
             <div ref={listRef} className="h-[65vh] overflow-y-auto p-4">
-                {messages.length === 0 && !isStarting && (
+                {messages.length === 0 && !isLoading && (
                     <div className="text-center text-slate-400 mt-20 text-lg">No messages yet</div>
                 )}
                 {messages.map((m, idx) => (
@@ -230,7 +265,7 @@ const Chat = () => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
+                        if (e.key === 'Enter' && !e.shiftKey && input.length >= 50) {
                             e.preventDefault();
                             sendMessage();
                         }
@@ -243,9 +278,9 @@ const Chat = () => {
                 />
                 <button
                     onClick={sendMessage}
-                    disabled={isLoading || closed || !canSend || !input.trim()}
+                    disabled={isLoading || closed || !canSend || !input.trim() || input.length < 50}
                     className={`px-5 py-3 rounded-full font-semibold text-white transition ${
-                    isLoading || closed || !canSend || !input.trim()
+                    isLoading || closed || !canSend || !input.trim() || input.length < 50
                         ? 'bg-slate-300 cursor-not-allowed'
                         : 'bg-[var(--color-secondary)] hover:bg-[var(--color-primary)] hover:cursor-pointer'
                     }`}
