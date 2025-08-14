@@ -121,7 +121,7 @@ export const startTherapySession = async (req, res, next) => {
         if(!sessionNumber) {
             const error = new Error("Session number is required.");
             error.status = 400;
-            throw error;
+            return next(error);
         }
 
         // Get the session details
@@ -138,14 +138,8 @@ export const startTherapySession = async (req, res, next) => {
 
         const session = sessionResult[0];
 
-        if(session.status === 'completed') {
-            const error = new Error("Session is already completed.");
-            error.status = 400;
-            return next(error);
-        }
-
-        if(session.status === 'not_started') {
-            const error = new Error("Can not start this session.");
+        if(session.status !== 'in_queue') {
+            const error = new Error("Session is not in queue.");
             error.status = 400;
             return next(error);
         }
@@ -161,6 +155,12 @@ export const startTherapySession = async (req, res, next) => {
             error.status = 400;
             return next(error);
         }
+
+        // Mark the session as in progress
+        await pool.query(
+            `UPDATE therapy_sessions SET status = 'in_progress' WHERE id = ?`,
+            [session.id]
+        );
         
         // Get the previous session summary
         let summary = "";
@@ -172,12 +172,6 @@ export const startTherapySession = async (req, res, next) => {
 
             summary = prevSummary[0] ? prevSummary[0].summary : "";
         }
-
-        // Mark the session as in progress
-        await pool.query(
-            `UPDATE therapy_sessions SET status = 'in_progress' WHERE id = ?`,
-            [session.id]
-        );
 
         // Generate a AI welcome message
         const welcomeMessage = await getWelcomeMessage(session, summary);

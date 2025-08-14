@@ -200,7 +200,7 @@ export async function getChatMessage(session, messagesResult, message, summary) 
     return responseText.trim();
 };
 
-export async function getClosingMessage(session, messagesResult, message) {
+export async function getClosingMessage(session, messagesResult, message, summary) {
     // Generate a closing message
     const closingMessage = `
         You are a professional therapist concluding a therapy session.
