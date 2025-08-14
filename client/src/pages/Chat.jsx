@@ -44,6 +44,8 @@ const Chat = () => {
     const [sessionInfo, setSessionInfo] = useState(null);
     const [canSend, setCanSend] = useState(true);
     const listRef = useRef(null);
+
+    
     
     useEffect(() => {
         let mounted = true; // Track if component is mounted
@@ -55,13 +57,14 @@ const Chat = () => {
                 // Fetch session details
                 let current = null;
                 try {
-                    const sessionsRes = await axiosInstance.get('/sessions');
-                    const allSessions = Array.isArray(sessionsRes.data) ? sessionsRes.data : sessionsRes.data?.sessions || [];
-                    current = allSessions.find((s) => Number(s.session_number) === Number(sessionNumber)) || null;
-                    
-                    console.log('Current session:', current);
-                    
-                    if (mounted) setSessionInfo(current);
+                    const sessionsRes = await axiosInstance.get('/sessions').then((res) => {
+                        const allSessions = Array.isArray(res.data) ? res.data : res.data?.sessions || [];
+                        current = allSessions.find((s) => Number(s.session_number) === Number(sessionNumber)) || null;
+
+                        console.log('Current session:', current);
+
+                        if (mounted) setSessionInfo(current);
+                    });
                 } catch (error) {
                     console.error('Failed to fetch sessions:', error);
                     return;
@@ -69,16 +72,18 @@ const Chat = () => {
 
                 // Fetch past messages
                 try {
-                    const msgRes = await axiosInstance.get(`/sessions/messages/${current.id}`);
-                    const sessionMessages = msgRes.data.messages ? msgRes.data.messages : [];
+                    const msgRes = await axiosInstance.get(`/sessions/messages/${current.id}`).then((res) => {
+                        const sessionMessages = res.data.messages ? res.data.messages : [];
 
-                    console.log('Session messages:', sessionMessages);
+                        console.log('Session messages:', sessionMessages);
 
-                    if (mounted && sessionMessages.length > 0) {
-                        setMessages(
-                            sessionMessages.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.message }))
-                        );
-                    }
+                        if (mounted && sessionMessages.length > 0) {
+                            setMessages(
+                                sessionMessages.map((m) => ({ role: m.sender === 'user' ? 'user' : 'assistant', text: m.message }))
+                            );
+                        }
+                    });
+                    
                 } catch (error) {
                     console.error('Failed to fetch messages:', error);
                 }
@@ -98,11 +103,13 @@ const Chat = () => {
                     try {
                         setIsLoading(true);
 
-                        const res = await axiosInstance.post('/ai/start-session', { sessionNumber });
+                        const res = await axiosInstance.post('/ai/start-session', { sessionNumber }).then((res) => {
+                            setMessages([{ role: 'assistant', text: res.data.message }]);
+                            setCanSend(true);
+                        });
+                        
                         if (!mounted) return;
 
-                        setMessages([{ role: 'assistant', text: res.data.message }]);
-                        setCanSend(true);
                     } catch (err) {
                         const alreadyStarted = err?.response?.status === 400;
                         if (!alreadyStarted) {
@@ -134,13 +141,15 @@ const Chat = () => {
 
     }, [sessionNumber]);
 
+
     // Scroll to bottom on new messages
     useEffect(() => {
         listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages]);
 
+
     const sendMessage = async () => {
-        if (!input.trim() || isLoading || closed || !canSend) return;
+        if (!checkInput()) return;
 
         const userMsg = { role: 'user', text: input.trim() };
         setMessages((prev) => [...prev, userMsg]);
@@ -163,7 +172,23 @@ const Chat = () => {
             setIsLoading(false);
         }
     };
-    
+
+    const checkInput = () => {
+        if (!input.trim() || isLoading || closed || !canSend) return false;
+
+        if (input.length > 500) {
+            alert('Message is too long');
+            return false;
+        }
+
+        if(input.length < 50) {
+            alert('Message is too short');
+            return false;
+        }
+
+        return true;
+    };
+
     return (
         <div className="min-h-screen flex flex-col items-center pt-20">
         <div className="w-full max-w-5xl">
@@ -174,6 +199,9 @@ const Chat = () => {
                       <p className="text-slate-400 text-sm mt-1">{sessionInfo.topic}</p>
                     )}
                 </div>
+
+                
+
                 {closed ? (
                   <span className="text-xs font-semibold text-green-700 bg-green-100 px-3 py-2 rounded-full">Completed</span>
                 ) : (

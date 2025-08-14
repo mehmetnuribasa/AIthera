@@ -51,12 +51,19 @@ export const chatWithAI = async (req, res, next) => {
 
             summary = prevSummary[0] ? prevSummary[0].summary : "";
         }
+        
+        const startTime = session.start_time;
+        const currentTime = new Date();
+        const elapsedTime = (currentTime - new Date(startTime)) / (1000 * 60); // in minutes
+
+        // Check if the user has reached the time limit
+        const reachedTimeLimit = elapsedTime >= 45;
 
         // Check if the user has reached the turn limit
-        const reachedTurnLimit = messagesResult.length >= 1;
+        const reachedTurnLimit = messagesResult.length >= 20;
 
         //continue the conversation..
-        if(!reachedTurnLimit) {
+        if(!reachedTurnLimit && !reachedTimeLimit) {
             const responseText = await getChatMessage(session, messagesResult, message, summary);
 
             //save the user message to database
@@ -151,16 +158,22 @@ export const startTherapySession = async (req, res, next) => {
         );
 
         if (messagesResult.length > 0) {
-            const error = new Error("Session already started. Use /chat endpoint to continue conversation.");
+            const error = new Error("Session already started.");
             error.status = 400;
             return next(error);
         }
 
         // Mark the session as in progress
-        await pool.query(
-            `UPDATE therapy_sessions SET status = 'in_progress' WHERE id = ?`,
+        const [updateResult] = await pool.query(
+            `UPDATE therapy_sessions SET status = 'in_progress', start_time = NOW() WHERE id = ? AND status = 'in_queue'`,
             [session.id]
         );
+
+        if(updateResult.affectedRows === 0) {
+            const error = new Error("Session is not in queue or already started.");
+            error.status = 400;
+            return next(error);
+        }
         
         // Get the previous session summary
         let summary = "";

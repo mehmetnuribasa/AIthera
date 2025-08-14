@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
+import profilePhoto from '../assets/profilePhoto.png';
 
 const Profile = () => {
   const [userData, setUserData] = useState({
@@ -186,14 +187,13 @@ const Profile = () => {
         <div className=" p-8 mb-8">
           <div className="flex flex-col md:flex-row items-center gap-7">
             {/* Profile Picture */}
-            <div className="w-32 h-32 rounded-full overflow-hidden shadow-xl">
+            <div className="w-40 h-40 rounded-full overflow-hidden shadow-xl flex items-center justify-center">
               <img
-                src="https://picsum.photos/200"
+                src={profilePhoto}
                 alt="Profile"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover scale-200"
               />
             </div>
-            
             {/* User Info */}
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-3xl font-bold text-slate-500 mb-2">

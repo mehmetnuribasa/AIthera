@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../api/axios';
 import logo from '../assets/Logo.png';
 import logout from '../assets/logout.png';
+import profilePhoto from '../assets/profilePhoto.png';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Navbar = () => {
         },
       });
 
+      
       localStorage.removeItem('accessToken');
       navigate('/home');
       setIsAuthenticated(false);
@@ -51,14 +53,14 @@ const Navbar = () => {
                 
                 {/* Profile picture */}
                 <div
-                  className="w-8 h-8 rounded-full overflow-hidden hover:cursor-pointer"
+                  className="w-13 h-13 rounded-full overflow-hidden hover:cursor-pointer"
                   onClick={() => navigate('/profile')}
                 >
-                    <img
-                        src="https://picsum.photos/200"
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                    />
+                  <img
+                    src={profilePhoto}
+                    alt="Profile"
+                    className="w-full h-full object-cover scale-130"
+                  />
                 </div>
 
                 {/* Logout button */}

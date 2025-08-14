@@ -8,7 +8,7 @@ export const getSessions = async (req, res, next) => {
         const userId = req.user.id; // Get user ID from authenticated request
 
         const [sessions] = await pool.query(
-            "SELECT id, session_number, topic, status, wellness_score FROM therapy_sessions WHERE user_id = ?",
+            "SELECT id, session_number, topic, status, wellness_score, start_time FROM therapy_sessions WHERE user_id = ?",
             [userId]
         );
 
