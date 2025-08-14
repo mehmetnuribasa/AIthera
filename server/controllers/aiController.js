@@ -60,7 +60,7 @@ export const chatWithAI = async (req, res, next) => {
         const reachedTimeLimit = elapsedTime >= 45;
 
         // Check if the user has reached the turn limit
-        const reachedTurnLimit = messagesResult.length >= 20;
+        const reachedTurnLimit = messagesResult.length >= 40;
 
         //continue the conversation..
         if(!reachedTurnLimit && !reachedTimeLimit) {

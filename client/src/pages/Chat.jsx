@@ -118,7 +118,7 @@ const Chat = () => {
                         const res = await axiosInstance.post('/ai/start-session', { sessionNumber });
                         setMessages([{ role: 'assistant', text: res.data.message }]);
                         setCanSend(true);
-                        
+
                         if (!mounted) return;
 
                     } catch (err) {
@@ -169,15 +169,13 @@ const Chat = () => {
             setRemainingTime(timeLeft);
 
             if (timeLeft === 0) {
-                setClosed(true);
-                setCanSend(false);
                 clearInterval(interval);
             }
         }, 1000);
 
         // Cleanup interval on component unmount
         return () => clearInterval(interval);
-    }, [sessionInfo]);
+    }, [sessionInfo, sessionNumber]);
 
     const sendMessage = async () => {
         if (!checkInput()) return;
@@ -212,7 +210,7 @@ const Chat = () => {
             return false;
         }
 
-        if(input.length < 50) {
+        if(input.length < 25) {
             alert('Message is too short');
             return false;
         }
@@ -231,9 +229,14 @@ const Chat = () => {
                     )}
                 </div>
                 <div className='flex space-x-5'>
-                    {remainingTime !== null && (
+                    {remainingTime !== null && !closed && (
                         <p className="text-slate-400 text-sm font-semibold mt-1">
                             Time left: {Math.floor(remainingTime / 60000)}:{Math.floor((remainingTime % 60000) / 1000).toString().padStart(2, '0')}
+                        </p>
+                    )}
+                    {remainingTime === 0 && !closed && (
+                        <p className="text-slate-400 text-sm font-semibold mt-1">
+                            Time's up! One last message.
                         </p>
                     )}
                     {closed ? (
@@ -265,7 +268,7 @@ const Chat = () => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey && input.length >= 50) {
+                        if (e.key === 'Enter' && !e.shiftKey && input.length >= 25) {
                             e.preventDefault();
                             sendMessage();
                         }
@@ -278,9 +281,9 @@ const Chat = () => {
                 />
                 <button
                     onClick={sendMessage}
-                    disabled={isLoading || closed || !canSend || !input.trim() || input.length < 50}
+                    disabled={isLoading || closed || !canSend || !input.trim() || input.length < 25}
                     className={`px-5 py-3 rounded-full font-semibold text-white transition ${
-                    isLoading || closed || !canSend || !input.trim() || input.length < 50
+                    isLoading || closed || !canSend || !input.trim() || input.length < 25
                         ? 'bg-slate-300 cursor-not-allowed'
                         : 'bg-[var(--color-secondary)] hover:bg-[var(--color-primary)] hover:cursor-pointer'
                     }`}

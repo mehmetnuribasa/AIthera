@@ -83,6 +83,15 @@ const Profile = () => {
     fetchTherapySessions();
   }, []);
 
+
+
+  useEffect(() => {
+    const savedTab = localStorage.getItem('activeTab');
+      if (savedTab) {
+          setActiveTab(savedTab);
+      }
+  }, []);
+
   
   const therapies = {
     'ACT': {
@@ -116,6 +125,11 @@ const Profile = () => {
     if(session.status !== "not_started") {
       navigate(`/chat?s=${session.session_number}`);
     }
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    localStorage.setItem('activeTab', tab);
   };
 
   const getRecommendedTherapy = () => {
@@ -222,7 +236,7 @@ const Profile = () => {
           <div className="border-b border-slate-200">
             <nav className="flex space-x-5 px-8">
               <button
-                onClick={() => setActiveTab('assessment')}
+                onClick={() => handleTabChange('assessment')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm hover:cursor-pointer ${
                   activeTab === 'assessment'
                     ? 'border-[var(--color-secondary)] text-[var(--color-primary)]'
@@ -232,7 +246,7 @@ const Profile = () => {
                 Assessment
               </button>
               <button
-                onClick={() => setActiveTab('overview')}
+                onClick={() => handleTabChange('overview')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm hover:cursor-pointer ${
                   activeTab === 'overview'
                     ? 'border-[var(--color-secondary)] text-[var(--color-primary)]'
@@ -242,7 +256,7 @@ const Profile = () => {
                 Overview
               </button>
               <button
-                onClick={() => setActiveTab('therapy')}
+                onClick={() => handleTabChange('therapy')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm hover:cursor-pointer ${
                   activeTab === 'therapy'
                     ? 'border-[var(--color-secondary)] text-[var(--color-primary)]'
