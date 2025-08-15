@@ -19,7 +19,7 @@ const Navbar = () => {
         },
       });
 
-      
+      localStorage.setItem('activeTab', 'assessment');
       localStorage.removeItem('accessToken');
       navigate('/home');
       setIsAuthenticated(false);
@@ -30,7 +30,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 w-full shadow-sm z-20 overflow-hidden bg-white/10 backdrop-blur-md">
+    <nav className="fixed top-0 left-0 w-full z-20 overflow-hidden bg-white/10 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side - Brand */}
@@ -46,9 +46,15 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-8">
             {isAuthenticated ? (
               // Logged in user navigation
-              <>
+                <>
                 <a href="/" className="text-gray-700 hover:text-gray-900 font-medium">Home</a>
-                <a href="/profile" className="text-gray-700 hover:text-gray-900 font-medium">Therapy</a>
+                <a
+                  href="/profile"
+                  className="text-gray-700 hover:text-gray-900 font-medium"
+                  onClick={() => localStorage.setItem('activeTab', 'therapy')}
+                >
+                  Therapy
+                </a>
                 <a href="/" className="text-gray-700 hover:text-gray-900 font-medium">Community</a>
                 
                 {/* Profile picture */}

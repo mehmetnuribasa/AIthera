@@ -1,5 +1,5 @@
 import pool from '../config/pool.js';
-import { getTherapyRecommendation } from '../services/aiService.js';
+import { getTherapyRecommendation, getTherapySessions } from '../services/aiService.js';
 
 // @desc Create a new GAD-7 assessment
 // @route POST /api/gad7
@@ -91,28 +91,8 @@ export const createGAD7 = async (req, res, next) => {
             [result.insertId]
         );
 
-        // Get session plans
-        const sessionValues = recommendation.session_plan.map((session) => [
-            user_id,
-            result.insertId, // gad7_results.id
-            session.session_number,
-            session.session_topic,
-            JSON.stringify(session.session_goals), // convert to JSON string
-            recommendation.explanation
-        ]);
-
-        // Insert session plans into the database in background
-        pool.query(
-            `INSERT INTO therapy_sessions (user_id, gad7_id, session_number, topic, session_goals, session_explanation)
-            VALUES ?`,
-            [sessionValues]
-        );
-
-        // Mark the first session as in queue
-        pool.query(
-            `UPDATE therapy_sessions SET status = 'in_queue' WHERE user_id = ? AND session_number = ?`,
-            [user_id, 1]
-        );
+        // Get therapy sessions
+        getTherapySessions(recommendation, user_id, result.insertId);
         
         res.status(201).json({
             ...newResult[0]

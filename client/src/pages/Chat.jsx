@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axiosInstance from '../api/axios';
+import profilePhoto from '../assets/profilePhoto.png';
 
 const AssistantAvatar = () => (
   <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center text-slate-600">AI</div>
 );
 
 const UserAvatar = () => (
-  <img className="w-8 h-8 rounded-full object-cover" src="https://i.pravatar.cc/80?img=12" alt="You" />
+  <img className="w-8 h-8 rounded-full object-cover scale-160" src={profilePhoto} alt="You" />
 );
 
 const ChatMessage = ({ role, text }) => {
@@ -20,8 +21,8 @@ const ChatMessage = ({ role, text }) => {
       <div
         className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
           isUser
-            ? 'bg-[var(--color-primary)] text-white rounded-br-md'
-            : 'bg-slate-100 text-slate-700 rounded-bl-md'
+            ? 'bg-[var(--color-secondary)] text-slate-100 rounded-br-md'
+            : 'bg-slate-100 text-slate-500 rounded-bl-md'
         }`}
       >
         {text}
@@ -118,6 +119,8 @@ const Chat = () => {
                         const res = await axiosInstance.post('/ai/start-session', { sessionNumber });
                         setMessages([{ role: 'assistant', text: res.data.message }]);
                         setCanSend(true);
+
+                        setRemainingTime(45 * 60 * 1000);   // 45 minutes
 
                         if (!mounted) return;
 

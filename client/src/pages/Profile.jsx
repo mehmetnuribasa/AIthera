@@ -81,17 +81,17 @@ const Profile = () => {
     fetchUserProfile();
     fetchGAD7Results();
     fetchTherapySessions();
-  }, []);
-
+  }, [activeTab]);
 
 
   useEffect(() => {
-    const savedTab = localStorage.getItem('activeTab');
-      if (savedTab) {
-          setActiveTab(savedTab);
-      }
-  }, []);
 
+    const savedTab = localStorage.getItem('activeTab');
+    if (savedTab) {
+        setActiveTab(savedTab);
+    }
+
+  }, []);
   
   const therapies = {
     'ACT': {
@@ -130,6 +130,24 @@ const Profile = () => {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     localStorage.setItem('activeTab', tab);
+  };
+
+  const calculateAttendance = () => {
+    const totalSessions = therapySessions.length;
+    const currentSession = therapySessions.find(
+      session => session.status === 'in_progress' || session.status === 'in_queue'
+    )?.session_number - 1;
+
+    return totalSessions > 0 ? ((currentSession / totalSessions) * 100).toFixed(2) : 0;
+  };
+
+  const getWellnessScore = () => {
+    const currentSession = therapySessions.find(
+      session => session.status === 'in_progress' || session.status === 'in_queue'
+    )?.session_number;
+    const currentSessionScore = therapySessions[currentSession-2]?.wellness_score || 0;
+
+    return currentSessionScore;
   };
 
   const getRecommendedTherapy = () => {
@@ -193,6 +211,37 @@ const Profile = () => {
     }
   };
 
+  // Helper to get progress message based on attendance percentage
+  const getAttendanceMessage = (attendance) => {
+    if (attendance >= 80) {
+      return "Excellent! You've completed a significant portion of your therapy.";
+    } else if (attendance >= 60) {
+      return "Very good progress, you're almost there!";
+    } else if (attendance >= 40) {
+      return "You've passed the halfway mark, keep going!";
+    } else if (attendance >= 20) {
+      return "Good start, you've taken a solid first step.";
+    } else if (attendance < 20) {
+      return "Keep it up, every step counts!";
+    } else if (attendance === 0) {
+      return "Take the first step to start your therapy!";
+    }
+  };
+
+  const getWellnessScoreMessage = (score) => {
+    if (score >= 80) {
+      return "Outstanding! You're doing an amazing job.";
+    } else if (score >= 60) {
+      return "Great work! You're on the right track.";
+    } else if (score >= 40) {
+      return "Good effort! Keep pushing forward.";
+    } else if (score >= 20) {
+      return "Fair progress. Consider focusing more on your sessions.";
+    } else {
+      return "Low engagement. We encourage you to participate more actively.";
+    }
+  };
+
   return (
     <div className="min-h-screen pt-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -225,7 +274,7 @@ const Profile = () => {
             </div>
             <div className="bg-slate-100 rounded-2xl px-4 py-2">
                 <span className="text-sm text-slate-500">Therapy Progress</span>
-                <div className="text-lg font-bold text-slate-500">{userData.therapyProgress}%</div>
+                <div className="text-lg font-bold text-slate-500">{calculateAttendance()}%</div>
             </div>
             </div>
           </div>
@@ -319,7 +368,7 @@ const Profile = () => {
                 <div className="text-right">
                   <button 
                     className="bg-[var(--color-primary)] text-white px-4 py-4 rounded-xl font-semibold hover:bg-[var(--color-secondary)] hover:cursor-pointer transition ease-linear duration-300"
-                    onClick={() => setActiveTab('therapy')}
+                    onClick={() => handleTabChange('therapy')}
                   >
                     Continue Therapy
                   </button>
@@ -333,22 +382,31 @@ const Profile = () => {
                 
                 {/* Progress Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* 1. Completed Sessions */}
                   <div className="bg-blue-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-2">Anxiety Management</h3>
-                    <div className="text-3xl font-bold text-blue-900 mb-2">75%</div>
-                    <p className="text-blue-800 text-sm">Improved from last month</p>
+                    <h3 className="text-lg font-semibold text-blue-900 mb-2">Completed Sessions</h3>
+                    <div className="text-3xl font-bold text-blue-900 mb-2">
+                      {therapySessions.filter(s => s.status === 'completed').length} / {therapySessions.length}
+                    </div>
+                    <p className="text-blue-800 text-sm">
+                      {therapySessions.filter(s => s.status === 'completed').length === 0
+                        ? "Start your first session to begin progress."
+                        : "Great job on completing your sessions!"}
+                    </p>
                   </div>
                   
+                  {/* 2. Session Attendance */}
                   <div className="bg-green-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-green-900 mb-2">Session Attendance</h3>
-                    <div className="text-3xl font-bold text-green-900 mb-2">92%</div>
-                    <p className="text-green-800 text-sm">Excellent consistency</p>
+                    <div className="text-3xl font-bold text-green-900 mb-2">{calculateAttendance()} %</div>
+                    <p className="text-green-800 text-sm">{getAttendanceMessage(calculateAttendance())}</p>
                   </div>
                   
+                  {/* 3. Wellness Score */}
                   <div className="bg-red-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-red-900 mb-2">Wellness Score</h3>
-                    <div className="text-3xl font-bold text-red-900 mb-2">8.5/10</div>
-                    <p className="text-red-800 text-sm">Strong improvement</p>
+                    <div className="text-3xl font-bold text-red-900 mb-2">{getWellnessScore()} %</div>
+                    <p className="text-red-800 text-sm">{getWellnessScoreMessage(getWellnessScore())}</p>
                   </div>
                 </div>
               </div>
@@ -361,39 +419,45 @@ const Profile = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {therapySessions.map((session) => (
-                    <div
-                      key={session.session_number}
-                      className={`flex items-center justify-between p-4 bg-slate-50 rounded-2xl transition ease-in-out duration-300
-                                  ${session.status !== 'not_started' ? 'hover:cursor-pointer hover:scale-101' : 'hover:cursor-not-allowed opacity-60'}`}
-                      onClick={() => handleSessionClick(session)}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
-                          <span className="text-white font-bold">{session.session_number}</span>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-slate-600">Session {session.session_number}</h3>
-                          <p className="text-slate-500 text-sm">45 min • {session.topic}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`px-3 py-2 rounded-full text-xs font-medium ${getStatusColor(session.status)}`}>
-                          {session.status === 'completed' && 'Completed'}
-                          {session.status === 'not_started' && 'Not Started'}
-                          {session.status === 'in_queue' && 'Next Session'}
-                          {session.status === 'in_progress' && 'In Progress'}
-                        </span>
-                        {(session.status !== 'not_started') && (
-                          <div className="text-slate-400">
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
+                  {therapySessions.length === 0 ? (
+                    <div className="text-center text-slate-500 py-10">
+                      Therapy sessions are loading...
                     </div>
-                  ))}
+                  ) : (
+                    therapySessions.map((session) => (
+                      <div
+                        key={session.session_number}
+                        className={`flex items-center justify-between p-4 bg-slate-50 rounded-2xl transition ease-in-out duration-300
+                                    ${session.status !== 'not_started' ? 'hover:cursor-pointer hover:scale-101' : 'hover:cursor-not-allowed opacity-60'}`}
+                        onClick={() => handleSessionClick(session)}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold">{session.session_number}</span>
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-slate-600">Session {session.session_number}</h3>
+                            <p className="text-slate-500 text-sm">45 min • {session.topic}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={`px-3 py-2 rounded-full text-xs font-medium ${getStatusColor(session.status)}`}>
+                            {session.status === 'completed' && 'Completed'}
+                            {session.status === 'not_started' && 'Not Started'}
+                            {session.status === 'in_queue' && 'Next Session'}
+                            {session.status === 'in_progress' && 'In Progress'}
+                          </span>
+                          {(session.status !== 'not_started') && (
+                            <div className="text-slate-400">
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}

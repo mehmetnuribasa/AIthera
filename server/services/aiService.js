@@ -1,9 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import pool from "../config/pool.js";
 
-
-// @desc Get therapy recommendation based on user profile and GAD-7 results
-// @route GET /api/ai/recommendation
 export async function getTherapyRecommendation(profile, gad7Result) {
     const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
@@ -60,26 +57,7 @@ export async function getTherapyRecommendation(profile, gad7Result) {
         User response:
         "${gad7Result.question8}"
 
-        Please take this answer into account when recommending the most appropriate therapy method.
-        
-        
-        Additionally, based on the chosen therapy type(s) and session count, provide a structured plan for each session.
-
-        For each session:
-        - Give a clear "session_topic": the main theme or focus of that session.
-        - Give "session_goals": 2-3 specific outcomes we want to achieve or insights we want to gather from the user by the end of the session.
-        - Keep the topics aligned with the selected therapy type(s) and the user's specific issues.
-        - Ensure topics are progressive (later sessions can build upon earlier ones).
-        - Avoid straying too far from the planned session topic.
-        - Make the goals concrete and measurable (e.g., "User identifies 3 recurring thought patterns" instead of vague phrases like "User feels better").
-        - Limit the plan to the number of sessions recommended above.
-
-        Include this session plan in the JSON response as an array under the key "session_plan", where each item is:
-        {
-        "session_number": ,
-        "session_topic": "",
-        "session_goals": ["", ""]
-        }`;
+        Please take this answer into account when recommending the most appropriate therapy method.`;
 
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -93,6 +71,88 @@ export async function getTherapyRecommendation(profile, gad7Result) {
 
     console.log('AI Recommendation:', JSON.stringify(recommendationObj, null, 2));
     return recommendationObj;
+};
+
+export async function getTherapySessions(recommendation, user_id, gad7_id) {
+    const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+    });
+
+    const prompt = `
+        You are a clinical psychologist with over 40 years of experience designing structured psychotherapy treatment plans.
+        You will now create a progressive session plan for a patient, based on the following pre-determined therapy framework:
+
+        Therapy Context:
+        Selected therapy types: ${JSON.stringify(recommendation.therapy_types)}
+        Total number of sessions: ${recommendation.session_count}
+        Clinical background & treatment rationale: ${recommendation.explanation}
+
+        Your task:
+        1. Create a session plan with exactly ${recommendation.session_count} sessions.
+        2. For each session, provide:
+            - session_number: integer starting from 1.
+            - session_topic: a short, specific title summarizing the main focus.
+            - session_goals: an array of 2-3 clear, measurable objectives the patient should achieve or insights the therapist should gather by the end of that session.
+        3. Ensure sessions are progressive — early sessions focus on psychoeducation and building rapport, middle sessions on skill-building and applying strategies, and later sessions on consolidation, relapse prevention, or advanced interventions.
+        4. Goals should be concrete and actionable (e.g., "Patient identifies 3 personal anxiety triggers" instead of vague terms like "Patient feels calmer").
+        5. Keep topics aligned with the therapy types chosen and the patient's profile described in the explanation.
+        6. Avoid introducing irrelevant or unrelated topics that do not fit the therapy framework.
+        7. The language should be clinician-grade, professional, and clear, suitable for inclusion in a formal treatment record.
+
+        Output format:
+        Respond only with a JSON array under the key "session_plan".
+        Do not include code block markers (\`\`\`) or extra text.
+
+        Example output:
+        {
+        "session_plan": [
+        {
+        "session_number": 1,
+        "session_topic": "Understanding the Anxiety Cycle",
+        "session_goals": [
+        "Patient describes the link between thoughts, feelings, and behaviors",
+        "Identify 3 recent situations that triggered anxiety"
+        ]
+        },
+        ...
+        ]
+        }`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+    });
+
+    // cleanup
+    let cleanedResponseText = response.text.trim().replace(/```(?:json)?([\s\S]*?)```/g, "$1").trim();
+
+    const therapySessionsObj = JSON.parse(cleanedResponseText);
+    console.log('AI Therapy types:', JSON.stringify(therapySessionsObj, null, 2));
+
+    // Get session plans
+    const sessionValues = therapySessionsObj.session_plan.map((session) => [
+        user_id,
+        gad7_id,
+        session.session_number,
+        session.session_topic,
+        JSON.stringify(session.session_goals), // convert to JSON string
+        recommendation.explanation
+    ]);
+
+    // Insert session plans into the database in background
+    await pool.query(
+        `INSERT INTO therapy_sessions (user_id, gad7_id, session_number, topic, session_goals, session_explanation)
+        VALUES ?`,
+        [sessionValues]
+    );
+
+    // Mark the first session as in queue
+    await pool.query(
+        `UPDATE therapy_sessions SET status = 'in_queue' WHERE user_id = ? AND session_number = ?`,
+        [user_id, 1]
+    );
+
+    return therapySessionsObj;
 };
 
 export async function getWelcomeMessage(session, summary) {
@@ -140,7 +200,6 @@ export async function getWelcomeMessage(session, summary) {
 };
 
 export async function getChatMessage(session, messagesResult, message, summary) {
-    console.log('Summary:', summary);
 
     // Generate a AI response
     const sessionContext = `
@@ -160,7 +219,6 @@ export async function getChatMessage(session, messagesResult, message, summary) 
         - If the user strays far from the topic, gently acknowledge their point, then guide the conversation back to the session's focus.
         - Keep responses concise but impactful — avoid giving too much information at once.
         - Periodically connect the discussion to the session goals, helping the user see their progress.
-        - End the session only when the goals have been addressed.
 
         Respond as a supportive, human-like therapist — avoid sounding like a script.`;
 
@@ -346,7 +404,7 @@ export async function summarizeSessionInBackground(session, messagesResult, mess
 
     console.log('AI Summary:', JSON.stringify(responseObj, null, 2));
 
-    await pool.query(
+    pool.query(
         `UPDATE therapy_sessions SET summary = ?, wellness_score = ? WHERE id = ?`,
         [responseObj.summary, responseObj.wellness_score || 0, session.id]
     );
