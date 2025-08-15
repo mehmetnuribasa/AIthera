@@ -242,10 +242,23 @@ const Profile = () => {
     }
   };
 
+  // Mood confetti state
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [selectedMood, setSelectedMood] = useState(null);
+
+  // Confetti effect for mood selection
+  useEffect(() => {
+    if (showConfetti) {
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [showConfetti]);
+
   return (
     <div className="min-h-screen pt-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         {/* Header Section */}
         <div className=" p-8 mb-8">
           <div className="flex flex-col md:flex-row items-center gap-7">
@@ -316,7 +329,6 @@ const Profile = () => {
               </button>
             </nav>
           </div>
-
 
           {/* Tab Content */}
           <div className="p-8">
@@ -395,20 +407,42 @@ const Profile = () => {
                     </p>
                   </div>
                   
-                  {/* 2. Session Attendance */}
-                  <div className="bg-green-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-green-900 mb-2">Session Attendance</h3>
-                    <div className="text-3xl font-bold text-green-900 mb-2">{calculateAttendance()} %</div>
-                    <p className="text-green-800 text-sm">{getAttendanceMessage(calculateAttendance())}</p>
-                  </div>
-                  
-                  {/* 3. Wellness Score */}
+                  {/* 2. Wellness Score */}
                   <div className="bg-red-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-red-900 mb-2">Wellness Score</h3>
                     <div className="text-3xl font-bold text-red-900 mb-2">{getWellnessScore()} %</div>
                     <p className="text-red-800 text-sm">{getWellnessScoreMessage(getWellnessScore())}</p>
                   </div>
                 </div>
+
+                {/* 3. Today's Mood */}
+                  <div className="bg-yellow-200 rounded-xl p-6 mt-10 relative overflow-hidden">
+                    <h3 className="text-lg font-semibold text-yellow-900 mb-4 text-center">Today's Mood</h3>
+                    <div className="flex justify-around items-center mb-7">
+                      {['😊', '😐', '😢', '😡', '😴'].map((emoji, index) => (
+                        <button
+                          key={index}
+                          className="text-3xl hover:scale-110 hover:cursor-pointer transition-transform"
+                          onClick={() => {
+                            setSelectedMood(emoji);
+                            setShowConfetti(true);
+                          }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-yellow-800 text-md text-center">Select your mood for today and express yourself!</p>
+                    {/* Confetti/celebration effect */}
+                    {showConfetti && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 animate-fade-in">
+                        <span className="text-5xl animate-bounce">🎉</span>
+                        {selectedMood && (
+                          <span className="text-6xl ml-4 animate-bounce">{selectedMood}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
               </div>
             )}
 

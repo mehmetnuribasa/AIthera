@@ -34,6 +34,25 @@ const ChatMessage = ({ role, text }) => {
   );
 };
 
+const formatMessage = (message) => {
+    const lines = message.split('\n'); 
+    return lines.map((line, index) => {
+        // extract bold text
+        const parts = line.split(/(\*\*[^\*]+\*\*)/g);
+        return (
+            <span key={index}>
+            {parts.map((part, i) => {
+                if (/^\*\*[^\*]+\*\*$/.test(part)) {
+                    return <b key={i}>{part.slice(2, -2)}</b>;
+                }
+                return part;
+            })}
+            <br />
+            </span>
+        );
+    });
+};
+
 const Chat = () => {
     const [searchParams] = useSearchParams();
     const sessionNumber = useMemo(() => Number(searchParams.get('s') || 1), [searchParams]);
@@ -84,7 +103,7 @@ const Chat = () => {
             } catch (error) {
                 console.error('Failed to fetch messages:', error);
             }
-        }
+        };
 
         bootstrap();
 
@@ -119,8 +138,6 @@ const Chat = () => {
                         const res = await axiosInstance.post('/ai/start-session', { sessionNumber });
                         setMessages([{ role: 'assistant', text: res.data.message }]);
                         setCanSend(true);
-
-                        setRemainingTime(45 * 60 * 1000);   // 45 minutes
 
                         if (!mounted) return;
 
@@ -255,7 +272,7 @@ const Chat = () => {
                     <div className="text-center text-slate-400 mt-20 text-lg">No messages yet</div>
                 )}
                 {messages.map((m, idx) => (
-                    <ChatMessage key={idx} role={m.role} text={m.text} />
+                    <ChatMessage key={idx} role={m.role} text={formatMessage(m.text)} />
                 ))}
                 {isLoading && (
                     <div className="w-full flex justify-start mb-4">
